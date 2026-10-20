@@ -1,7 +1,6 @@
 //! Turning a stream of review counts into "something changed" events.
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 /// What the detector noticed between two consecutive polls.
@@ -36,9 +35,10 @@ impl Event {
 /// [`Event::BecameAvailable`] on the transition from "nothing waiting" to
 /// "something waiting", so a queue that stays pending never notifies twice.
 ///
-/// The state is serialisable so it survives a restart: if the app is quit
-/// while reviews are pending, restarting it will not announce them again.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// A fresh detector starts out knowing nothing, so the first count it sees
+/// counts as a transition. That is what makes Tanuki announce reviews that
+/// were already waiting when it started.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Detector {
     /// Whether reviews were pending the last time we looked.
     pending: bool,
@@ -114,10 +114,7 @@ mod tests {
     #[test]
     fn first_reviews_announce() {
         let mut detector = Detector::new();
-        assert_eq!(
-            detector.observe(3),
-            Event::BecameAvailable { count: 3 }
-        );
+        assert_eq!(detector.observe(3), Event::BecameAvailable { count: 3 });
         assert!(detector.is_pending());
     }
 
@@ -135,10 +132,7 @@ mod tests {
         detector.observe(3);
         assert_eq!(detector.observe(0), Event::Cleared);
         assert!(!detector.is_pending());
-        assert_eq!(
-            detector.observe(2),
-            Event::BecameAvailable { count: 2 }
-        );
+        assert_eq!(detector.observe(2), Event::BecameAvailable { count: 2 });
     }
 
     #[test]
@@ -157,22 +151,17 @@ mod tests {
     }
 
     #[test]
-    fn detector_state_survives_a_round_trip() {
+    fn reviews_waiting_at_startup_are_announced() {
+        // A fresh detector knows nothing, so reviews that are already waiting
+        // when the app starts count as new.
         let mut detector = Detector::new();
-        detector.observe(4);
-        let encoded = serde_json::to_string(&detector).unwrap();
-        let mut restored: Detector = serde_json::from_str(&encoded).unwrap();
-        assert!(restored.is_pending());
-        assert_eq!(restored.observe(4), Event::StillPending { count: 4 });
+        assert_eq!(detector.observe(4), Event::BecameAvailable { count: 4 });
     }
 
     #[test]
     fn pending_polls_wait_for_the_user_to_finish() {
         let now = Utc::now();
-        assert_eq!(
-            next_poll_delay(now, true, None),
-            PENDING_POLL_INTERVAL
-        );
+        assert_eq!(next_poll_delay(now, true, None), PENDING_POLL_INTERVAL);
     }
 
     #[test]

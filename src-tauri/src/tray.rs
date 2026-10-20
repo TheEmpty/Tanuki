@@ -2,9 +2,9 @@
 
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-use tauri_plugin_opener::OpenerExt;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Wry};
+use tauri_plugin_opener::OpenerExt;
 
 /// The identifier of the tray icon.
 pub const TRAY_ID: &str = "main";

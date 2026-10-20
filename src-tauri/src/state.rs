@@ -8,6 +8,21 @@ use std::sync::Mutex;
 use tauri::menu::MenuItem;
 use tauri::Wry;
 
+/// What the app last found out about the review queue.
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct Status {
+    /// Whether an API token has been saved.
+    pub configured: bool,
+    /// How many reviews are waiting.
+    pub reviews: u32,
+    /// When the next batch of reviews unlocks.
+    pub next_review_at: Option<String>,
+    /// When the last check happened.
+    pub last_checked: Option<String>,
+    /// The last error, if a check failed.
+    pub error: Option<String>,
+}
+
 /// Everything the app keeps around while it runs.
 pub struct AppState {
     /// The user's settings.
@@ -23,33 +38,36 @@ pub struct AppState {
     /// Reading the credential store can ask the operating system for
     /// permission, so it is only done when the token actually changes.
     pub token: Mutex<Option<String>>,
+    /// The last thing the app found out about the review queue.
+    ///
+    /// The window asks for this when it opens, so it never has to wait for
+    /// the next poll to show something sensible.
+    pub status: Mutex<Status>,
     /// Where the settings file lives.
     pub settings_path: PathBuf,
-    /// Where the detector state is kept.
-    pub state_path: PathBuf,
 }
 
 impl AppState {
-    /// Creates the state, loading the settings and detector from disk.
+    /// Creates the state, loading the settings from disk.
     pub fn load(
         config_dir: &Path,
         credentials: Box<dyn CredentialStore>,
         status_item: MenuItem<Wry>,
     ) -> Result<Self, SettingsError> {
         let settings_path = config_dir.join("settings.json");
-        let state_path = config_dir.join("state.json");
 
         let settings = read_json(&settings_path)?.unwrap_or_default();
-        let detector = read_json(&state_path)?.unwrap_or_default();
 
         Ok(Self {
             settings: Mutex::new(settings),
-            detector: Mutex::new(detector),
+            // The detector starts fresh on every launch, so reviews that are
+            // already waiting are announced when the app starts.
+            detector: Mutex::new(Detector::new()),
             status_item,
             credentials,
             token: Mutex::new(None),
+            status: Mutex::new(Status::default()),
             settings_path,
-            state_path,
         })
     }
 
@@ -58,7 +76,10 @@ impl AppState {
     /// The credential store is only consulted the first time, so a system
     /// that asks for permission does not ask on every poll.
     pub fn token(&self) -> Result<Option<String>, CredentialError> {
-        let mut cached = self.token.lock().expect("the token lock should not be poisoned");
+        let mut cached = self
+            .token
+            .lock()
+            .expect("the token lock should not be poisoned");
 
         if let Some(token) = cached.as_ref() {
             return Ok(Some(token.clone()));
@@ -77,15 +98,37 @@ impl AppState {
     /// Stores a new API token and forgets the cached one.
     pub fn set_token(&self, token: &str) -> Result<(), CredentialError> {
         self.credentials.set_token(token)?;
-        *self.token.lock().expect("the token lock should not be poisoned") = Some(token.to_owned());
+        *self
+            .token
+            .lock()
+            .expect("the token lock should not be poisoned") = Some(token.to_owned());
         Ok(())
     }
 
     /// Removes the stored API token.
     pub fn clear_token(&self) -> Result<(), CredentialError> {
         self.credentials.clear_token()?;
-        *self.token.lock().expect("the token lock should not be poisoned") = None;
+        *self
+            .token
+            .lock()
+            .expect("the token lock should not be poisoned") = None;
         Ok(())
+    }
+
+    /// The last thing the app found out about the review queue.
+    pub fn status(&self) -> Status {
+        self.status
+            .lock()
+            .expect("the status lock should not be poisoned")
+            .clone()
+    }
+
+    /// Records what the app found out about the review queue.
+    pub fn set_status(&self, status: Status) {
+        *self
+            .status
+            .lock()
+            .expect("the status lock should not be poisoned") = status;
     }
 
     /// Saves the settings to disk.
@@ -96,15 +139,6 @@ impl AppState {
             .map_err(|_| SettingsError::Poisoned)?
             .clone();
         write_json(&self.settings_path, &settings)
-    }
-
-    /// Saves the detector to disk.
-    pub fn save_detector(&self) -> Result<(), SettingsError> {
-        let detector = *self
-            .detector
-            .lock()
-            .map_err(|_| SettingsError::Poisoned)?;
-        write_json(&self.state_path, &detector)
     }
 }
 

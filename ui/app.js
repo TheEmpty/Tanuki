@@ -18,7 +18,6 @@ const elements = {
   launchAtLogin: document.getElementById("launch-at-login"),
   notifyLessons: document.getElementById("notify-lessons"),
   test: document.getElementById("test"),
-  check: document.getElementById("check"),
 };
 
 /** Shows a short message under the token field. */
@@ -53,10 +52,13 @@ async function load() {
   if (current.configured) {
     elements.token.placeholder = "••••••••  (a token is saved)";
     message("A token is saved. Enter a new one to replace it.");
+    // Show what is waiting straight away instead of waiting for the next poll.
+    setStatus(await invoke("get_status"));
   } else {
     message("No token saved yet.");
   }
 }
+
 /** Saves the settings whenever a toggle changes. */
 function watchToggles() {
   for (const element of [
@@ -89,6 +91,8 @@ async function saveToken() {
     elements.token.value = "";
     elements.token.placeholder = "••••••••  (a token is saved)";
     message("Token saved.");
+    // The status bubble only makes sense once there is a token to poll with.
+    elements.status.hidden = false;
   } catch (error) {
     message(String(error), true);
   } finally {
@@ -98,6 +102,14 @@ async function saveToken() {
 
 /** Updates the status line. */
 function setStatus(status) {
+  // Without a token there is nothing to report, so the bubble stays hidden.
+  if (!status.configured) {
+    elements.status.hidden = true;
+    return;
+  }
+
+  elements.status.hidden = false;
+
   if (status.error) {
     elements.statusDot.className = "status-dot error";
     elements.statusText.textContent = status.error;
@@ -140,10 +152,6 @@ elements.tokenLink.addEventListener("click", (event) => {
 
 elements.test.addEventListener("click", () => {
   invoke("test_notification");
-});
-
-elements.check.addEventListener("click", () => {
-  invoke("check_now");
 });
 
 listen("status", (event) => setStatus(event.payload));

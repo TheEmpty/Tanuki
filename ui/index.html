@@ -16,7 +16,7 @@
         </div>
       </header>
 
-      <section class="status" id="status" aria-live="polite">
+      <section class="status" id="status" aria-live="polite" hidden>
         <span class="status-dot" id="status-dot"></span>
         <span id="status-text">Checking…</span>
       </section>
@@ -25,7 +25,7 @@
         <h2>WaniKani account</h2>
         <p class="hint" id="token-hint">
           Tanuki needs a personal access token to read your review queue. It is
-          stored in your system's credential store, never in a file.
+          stored in your system's credential store.
         </p>
         <div class="row">
           <input
@@ -84,10 +84,9 @@
       </section>
 
       <section class="card">
-        <h2>Try it out</h2>
+        <h2>Test Notifications</h2>
         <div class="row">
-          <button id="test">Play the chime and show a notification</button>
-          <button id="check">Check now</button>
+          <button id="test">Play a test notification</button>
         </div>
       </section>
 

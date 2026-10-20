@@ -6,8 +6,7 @@ mod state;
 mod tray;
 
 use audio::ChimePlayer;
-
-use state::{AppState, SettingsError};
+use state::{AppState, SettingsError, Status};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_notification::NotificationExt;
@@ -44,9 +43,22 @@ fn get_settings(shared: State<'_, Shared>) -> WindowSettings {
         .clone();
 
     WindowSettings {
-        configured: shared.state.token().map(|token| token.is_some()).unwrap_or(false),
+        configured: shared
+            .state
+            .token()
+            .map(|token| token.is_some())
+            .unwrap_or(false),
         settings,
     }
+}
+
+/// Returns what the app last found out about the review queue.
+///
+/// The window asks for this when it opens, so it never shows "Checking…"
+/// while it waits for the next poll.
+#[tauri::command]
+fn get_status(shared: State<'_, Shared>) -> Status {
+    shared.state.status()
 }
 
 /// Saves the user's settings.
@@ -97,12 +109,6 @@ fn clear_token(app: AppHandle, shared: State<'_, Shared>) -> Result<(), String> 
         .map_err(|error| error.to_string())?;
     trigger_check(&app);
     Ok(())
-}
-
-/// Asks the poller to check the review queue right away.
-#[tauri::command]
-fn check_now(app: AppHandle) {
-    trigger_check(&app);
 }
 
 /// Plays the chime and shows a notification, so the user can check them.
@@ -182,7 +188,8 @@ pub fn run() {
                 .launch_at_login;
             apply_autostart(app.handle(), launch_at_login);
 
-            // The end to end test provides a token on the command line.
+            // The end to end test provides a token on the command line, so
+            // it does not have to go through the credential store.
             if let Ok(token) = std::env::var("TANUKI_TEST_TOKEN") {
                 if let Err(error) = state.set_token(&token) {
                     eprintln!("tanuki: could not store the test token: {error}");
@@ -209,10 +216,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
+            get_status,
             save_settings,
             save_token,
             clear_token,
-            check_now,
             test_notification,
             open_token_page,
             open_wanikani,

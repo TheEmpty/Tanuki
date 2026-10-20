@@ -1,7 +1,7 @@
 //! The background task that watches the WaniKani review queue.
 
 use crate::audio::ChimePlayer;
-use crate::state::AppState;
+use crate::state::{AppState, Status};
 use chrono::Utc;
 use notifier_core::api::WanikaniClient;
 use notifier_core::detect::{next_poll_delay, Event};
@@ -9,19 +9,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Listener};
 use tauri_plugin_notification::NotificationExt;
-
-/// The event the app sends to its window whenever the status changes.
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct Status {
-    /// How many reviews are waiting.
-    pub reviews: u32,
-    /// When the next batch of reviews unlocks.
-    pub next_review_at: Option<String>,
-    /// When the last check happened.
-    pub last_checked: Option<String>,
-    /// The last error, if a check failed.
-    pub error: Option<String>,
-}
 
 /// Starts the polling loop.
 pub fn spawn(app: AppHandle, state: Arc<AppState>, audio: Arc<ChimePlayer>) {
@@ -61,21 +48,27 @@ async fn check(
         Ok(None) => {
             // Without a token there is nothing to poll. Wait for the user to
             // add one rather than spinning.
-            report(app, state, &Status {
-                reviews: 0,
-                next_review_at: None,
-                last_checked: None,
-                error: None,
-            });
+            report(
+                app,
+                state,
+                &Status {
+                    configured: false,
+                    ..Status::default()
+                },
+            );
             return Duration::from_secs(60);
         }
         Err(error) => {
-            report(app, state, &Status {
-                reviews: 0,
-                next_review_at: None,
-                last_checked: Some(now_iso()),
-                error: Some(error.to_string()),
-            });
+            report(
+                app,
+                state,
+                &Status {
+                    configured: true,
+                    error: Some(error.to_string()),
+                    last_checked: Some(now_iso()),
+                    ..Status::default()
+                },
+            );
             return Duration::from_secs(60);
         }
     };
@@ -89,12 +82,16 @@ async fn check(
     let reviews = match client.available_review_count().await {
         Ok(count) => count,
         Err(error) => {
-            report(app, state, &Status {
-                reviews: 0,
-                next_review_at: None,
-                last_checked: Some(now_iso()),
-                error: Some(error.to_string()),
-            });
+            report(
+                app,
+                state,
+                &Status {
+                    configured: true,
+                    error: Some(error.to_string()),
+                    last_checked: Some(now_iso()),
+                    ..Status::default()
+                },
+            );
             return Duration::from_secs(60);
         }
     };
@@ -106,6 +103,8 @@ async fn check(
         Err(_) => None,
     };
 
+    // The detector starts fresh each launch, so reviews that were already
+    // waiting are announced when the app starts.
     let event = {
         let mut detector = state
             .detector
@@ -113,9 +112,6 @@ async fn check(
             .expect("the detector lock should not be poisoned");
         detector.observe(reviews)
     };
-    if let Err(error) = state.save_detector() {
-        eprintln!("tanuki: could not save the detector state: {error}");
-    }
 
     let pending = state
         .detector
@@ -127,12 +123,17 @@ async fn check(
         announce(app, state, audio, count);
     }
 
-    report(app, state, &Status {
-        reviews,
-        next_review_at: next_unlock.map(|moment| moment.to_rfc3339()),
-        last_checked: Some(now_iso()),
-        error: None,
-    });
+    report(
+        app,
+        state,
+        &Status {
+            configured: true,
+            reviews,
+            next_review_at: next_unlock.map(|moment| moment.to_rfc3339()),
+            last_checked: Some(now_iso()),
+            error: None,
+        },
+    );
 
     next_poll_delay(Utc::now(), pending, next_unlock)
 }
@@ -160,14 +161,16 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
             .title("Your reviews are ready")
             .body(body)
             .show();
-        match result {
-            Ok(()) => eprintln!("tanuki: notification shown"),
-            Err(error) => eprintln!("tanuki: could not show the notification: {error}"),
-        }    }
+        if let Err(error) = result {
+            eprintln!("tanuki: could not show the notification: {error}");
+        }
+    }
 }
 
 /// Sends the current status to the window and updates the tray.
 fn report(app: &AppHandle, state: &Arc<AppState>, status: &Status) {
+    state.set_status(status.clone());
+
     if let Err(error) = app.emit("status", status) {
         eprintln!("tanuki: could not send the status to the window: {error}");
     }

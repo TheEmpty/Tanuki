@@ -43,22 +43,30 @@ impl ChimePlayer {
 }
 
 /// Owns the output stream and plays the chime on request.
-fn audio_thread(receiver: mpsc::Receiver<()>) {    let chime = chime::render();
+fn audio_thread(receiver: mpsc::Receiver<()>) {
+    let chime = chime::render();
     let source = to_source(&chime);
 
+    // The sink owns the stream that writes to the audio device, so it has to
+    // be kept alive for as long as the player. Dropping it ends playback,
+    // which is why it is held here and never read.
+    let mut _sink: Option<rodio::MixerDeviceSink> = None;
     let mut player: Option<Player> = None;
 
     while receiver.recv().is_ok() {
         if player.is_none() {
-            let sink = match rodio::DeviceSinkBuilder::open_default_sink() {
-                Ok(sink) => sink,
+            match rodio::DeviceSinkBuilder::open_default_sink() {
+                Ok(device) => {
+                    let new_player = Player::connect_new(device.mixer());
+                    _sink = Some(device);
+                    player = Some(new_player);
+                }
                 Err(error) => {
                     eprintln!("tanuki: no audio output available: {error}");
                     // Try again the next time we are asked to play.
                     continue;
                 }
-            };
-            player = Some(Player::connect_new(sink.mixer()));
+            }
         }
 
         let player = player.as_ref().expect("the player was just created");

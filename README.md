@@ -21,6 +21,8 @@ nothing but your review queue.
 
 It only notifies when reviews *newly* become available. A queue that stays
 pending does not nag you, and the notification comes back after you clear it.
+Tanuki also announces reviews that are already waiting when it starts, so a
+restart never hides a queue from you.
 
 ## Requirements
 
@@ -95,9 +97,9 @@ requests carry an `ETag`, so repeated polls are answered with a cheap
 
 The detector is the piece that keeps the app from being annoying. It
 remembers whether reviews were pending and only reports a change on the
-transition from "nothing waiting" to "something waiting". Its state is saved
-to disk, so restarting Tanuki does not re-announce reviews you already know
-about.
+transition from "nothing waiting" to "something waiting". It starts fresh on
+every launch, which is why reviews that are already waiting are announced when
+Tanuki starts.
 
 ## Development
 
