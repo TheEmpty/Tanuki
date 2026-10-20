@@ -132,6 +132,13 @@ h2 {
   font-size: 0.8125rem;
 }
 
+/* The hint sits next to the link here, so it must not carry the bottom
+   margin it has when it is a block of its own. That margin would push the
+   text up out of line with the link. */
+.row-links .hint {
+  margin: 0;
+}
+
 input[type="password"] {
   flex: 1;
   min-width: 0;
