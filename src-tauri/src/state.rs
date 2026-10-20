@@ -100,11 +100,10 @@ impl AppState {
 
     /// Saves the detector to disk.
     pub fn save_detector(&self) -> Result<(), SettingsError> {
-        let detector = self
+        let detector = *self
             .detector
             .lock()
-            .map_err(|_| SettingsError::Poisoned)?
-            .clone();
+            .map_err(|_| SettingsError::Poisoned)?;
         write_json(&self.state_path, &detector)
     }
 }

@@ -188,6 +188,13 @@ pub fn run() {
                 tray::show_settings(app.handle());
             }
 
+            // The end to end test provides a token on the command line.
+            if let Ok(token) = std::env::var("TANUKI_TEST_TOKEN") {
+                if let Err(error) = state.set_token(&token) {
+                    eprintln!("tanuki: could not store the test token: {error}");
+                }
+            }
+
             // Start watching the review queue.
             poller::spawn(app.handle().clone(), state, audio);
 

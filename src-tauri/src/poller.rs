@@ -160,10 +160,10 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
             .title("Your reviews are ready")
             .body(body)
             .show();
-        if let Err(error) = result {
-            eprintln!("tanuki: could not show the notification: {error}");
-        }
-    }
+        match result {
+            Ok(()) => eprintln!("tanuki: notification shown"),
+            Err(error) => eprintln!("tanuki: could not show the notification: {error}"),
+        }    }
 }
 
 /// Sends the current status to the window and updates the tray.

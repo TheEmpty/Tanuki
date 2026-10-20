@@ -107,6 +107,17 @@ cargo tauri dev
 
 This builds the Rust side and serves `ui/` directly.
 
+### Testing against a local server
+
+Two environment variables help when you are working on the app itself:
+
+- `TANUKI_API_URL` points the client at a different API root, for example
+  `http://127.0.0.1:8731/v2`.
+- `TANUKI_TEST_TOKEN` puts a token into the credential store at startup, so
+  you do not have to click through the settings window.
+
+Neither is used in normal operation.
+
 ## Licence
 
 MIT.

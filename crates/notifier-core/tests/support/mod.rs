@@ -3,6 +3,10 @@
 //! It answers with canned responses and records the requests it received, so
 //! the tests can check headers, caching behaviour and error handling without
 //! touching the real API.
+//!
+//! Each test file is its own binary, so not every helper is used by all of
+//! them.
+#![allow(dead_code)]
 
 use std::net::TcpListener;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -137,14 +141,20 @@ impl MockServer {
 
     /// Starts a server that answers the assignments endpoint with a count and
     /// the summary endpoint with the given body.
+    ///
+    /// The path has to match exactly, so a request with the query string
+    /// percent-encoded into the path is rejected rather than quietly
+    /// answering the wrong thing.
     pub fn start_with_count(count: u32, summary: &str) -> Self {
         let count_body = format!(r#"{{"object":"collection","total_count":{count},"data":[]}}"#);
         let summary = summary.to_owned();
-        Self::start_with(move |path| {
-            if path.contains("summary") {
-                CannedResponse::ok(summary.clone())
-            } else {
-                CannedResponse::ok(count_body.clone())
+        Self::start_with(move |request| {
+            // The path without the query string.
+            let path = request.split('?').next().unwrap_or(request);
+            match path {
+                "/v2/assignments" => CannedResponse::ok(count_body.clone()),
+                "/v2/summary" => CannedResponse::ok(summary.clone()),
+                _ => CannedResponse::status("HTTP/1.1 404 Not Found"),
             }
         })
     }

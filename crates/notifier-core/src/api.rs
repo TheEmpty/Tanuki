@@ -15,6 +15,12 @@ pub const API_REVISION: &str = "20170710";
 
 const DEFAULT_BASE_URL: &str = "https://api.wanikani.com/v2";
 
+/// The environment variable that overrides the API root.
+///
+/// This exists so the app can be pointed at a local server while it is being
+/// developed. It is not meant to be used in normal operation.
+pub const BASE_URL_ENV: &str = "TANUKI_API_URL";
+
 /// Anything that can go wrong while talking to the WaniKani API.
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
@@ -132,10 +138,15 @@ impl WanikaniClient {
             .build()
             .expect("a client with default TLS settings should always build");
 
+        let base_url = std::env::var(BASE_URL_ENV)
+            .ok()
+            .and_then(|value| Url::parse(&value).ok())
+            .unwrap_or_else(|| Url::parse(DEFAULT_BASE_URL).expect("the default base URL is valid"));
+
         Self {
             http,
             token: token.into(),
-            base_url: Url::parse(DEFAULT_BASE_URL).expect("the default base URL is valid"),
+            base_url,
             assignments_etag: None,
             assignments_count: None,
             summary_etag: None,
@@ -162,7 +173,10 @@ impl WanikaniClient {
     /// This is the authoritative count: it reflects exactly what the review
     /// queue on the website would offer.
     pub async fn available_review_count(&mut self) -> Result<u32, ApiError> {
-        let url = self.url("assignments?immediately_available_for_review=true")?;
+        let url = self.url(
+            "assignments",
+            Some("immediately_available_for_review=true"),
+        )?;
         let mut request = self.authorised(url);
         if let Some(etag) = &self.assignments_etag {
             request = request.header(IF_NONE_MATCH, etag);
@@ -183,7 +197,7 @@ impl WanikaniClient {
 
     /// Fetches the summary report describing lessons and upcoming reviews.
     pub async fn summary(&mut self) -> Result<Summary, ApiError> {
-        let url = self.url("summary")?;
+        let url = self.url("summary", None)?;
         let mut request = self.authorised(url);
         if let Some(etag) = &self.summary_etag {
             request = request.header(IF_NONE_MATCH, etag);
@@ -212,17 +226,14 @@ impl WanikaniClient {
         self.summary = None;
     }
 
-    fn url(&self, path: &str) -> Result<Url, ApiError> {
-        // `Url::join` replaces the last path segment, which would drop the
-        // `v2` prefix, so the path is appended to the base by hand.
+    fn url(&self, path: &str, query: Option<&str>) -> Result<Url, ApiError> {
+        // The path and the query have to be set separately: putting a `?` in
+        // the path would percent-encode it and the filter would never be
+        // sent.
         let mut url = self.base_url.clone();
-        {
-            let mut segments = url
-                .path_segments_mut()
-                .map_err(|_| ApiError::InvalidUrl(self.base_url.to_string()))?;
-            segments.pop_if_empty();
-            segments.push(path);
-        }
+        let base_path = url.path().trim_end_matches('/').to_owned();
+        url.set_path(&format!("{base_path}/{path}"));
+        url.set_query(query);
         Ok(url)
     }
 

@@ -60,6 +60,12 @@ async fn the_review_filter_is_requested() {
     assert!(request
         .request_line
         .contains("immediately_available_for_review=true"));
+    // The filter has to arrive as a query string, not as part of the path.
+    assert!(
+        !request.request_line.contains("%3F"),
+        "the query string must not be percent-encoded into the path: {}",
+        request.request_line
+    );
 }
 
 #[tokio::test]

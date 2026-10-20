@@ -24,7 +24,9 @@ impl Default for Settings {
         Self {
             sound: true,
             notification: true,
-            launch_at_login: false,
+            // Tanuki is meant to be there when the user logs in, so this is
+            // on by default.
+            launch_at_login: true,
             notify_lessons: false,
         }
     }
@@ -39,7 +41,7 @@ mod tests {
         let settings = Settings::default();
         assert!(settings.sound);
         assert!(settings.notification);
-        assert!(!settings.launch_at_login);
+        assert!(settings.launch_at_login);
         assert!(!settings.notify_lessons);
     }
 
