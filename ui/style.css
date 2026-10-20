@@ -1,0 +1,230 @@
+:root {
+  --bg: #2e2a5e;
+  --card: #3a3470;
+  --card-edge: #4a4386;
+  --ink: #f4f1e8;
+  --ink-dim: #b9b3d6;
+  --teal: #3ec6c0;
+  --teal-dark: #31afa9;
+  --coral: #f2426b;
+  --gold: #f7c948;
+  --tan: #d9974a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+    "Noto Sans JP", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.mascot {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: none;
+}
+
+h1 {
+  font-size: 1.375rem;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.tagline {
+  margin: 0.125rem 0 0;
+  color: var(--ink-dim);
+  font-size: 0.8125rem;
+}
+
+h2 {
+  font-size: 0.9375rem;
+  margin: 0 0 0.75rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ink-dim);
+  flex: none;
+}
+
+.status-dot.ready {
+  background: var(--teal);
+  box-shadow: 0 0 0 3px rgb(62 198 192 / 0.2);
+}
+
+.status-dot.error {
+  background: var(--coral);
+  box-shadow: 0 0 0 3px rgb(242 66 107 / 0.2);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  border-radius: 0.75rem;
+  padding: 1rem 1.125rem;
+  margin-bottom: 1rem;
+}
+
+.hint {
+  color: var(--ink-dim);
+  font-size: 0.8125rem;
+  margin: 0 0 0.75rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.row-links {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+input[type="password"] {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--card-edge);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  font: inherit;
+  padding: 0.5rem 0.625rem;
+}
+
+input[type="password"]:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: -1px;
+}
+
+button {
+  background: var(--card-edge);
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: #57509c;
+}
+
+button.primary {
+  background: var(--teal);
+  color: #14323a;
+  font-weight: 600;
+}
+
+button.primary:hover {
+  background: #4ad6cf;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+a {
+  color: var(--teal);
+}
+
+.toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+
+.toggle + .toggle {
+  border-top: 1px solid var(--card-edge);
+}
+
+.toggle input {
+  margin: 0.25rem 0 0;
+  accent-color: var(--teal);
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.toggle strong {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.toggle em {
+  display: block;
+  color: var(--ink-dim);
+  font-size: 0.8125rem;
+  font-style: normal;
+}
+
+.footer {
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+  text-align: center;
+  margin-top: 1.25rem;
+}
+
+.footer p {
+  margin: 0;
+}
+
+.message {
+  color: var(--gold);
+  font-size: 0.8125rem;
+  margin: 0.5rem 0 0;
+}
+
+.message.error {
+  color: var(--coral);
+}

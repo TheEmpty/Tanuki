@@ -1,0 +1,23 @@
+[package]
+name = "notifier-core"
+description = "WaniKani review polling, detection and audio synthesis for Tanuki."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "4", features = ["apple-native-keyring-store"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "4", features = ["windows-native-keyring-store"] }
+
+[dev-dependencies]
+tokio = { workspace = true }

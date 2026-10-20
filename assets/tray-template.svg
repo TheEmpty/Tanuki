@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    A macOS template image: only the alpha channel is used, the system
+    recolours the shape for light and dark menu bars.
+
+    At 22 points only the strongest shapes survive, so this is a plain
+    head with rounded triangular ears and the eyes and muzzle punched
+    out. A scarf was tried here but at this size it merged with the
+    chin and read as a beard instead.
+  -->
+  <defs>
+    <mask id="cut">
+      <rect width="512" height="512" fill="#fff"/>
+      <!-- Eyes and muzzle are punched out of the face. -->
+      <ellipse cx="188" cy="252" rx="30" ry="33" fill="#000"/>
+      <ellipse cx="324" cy="252" rx="30" ry="33" fill="#000"/>
+      <ellipse cx="256" cy="344" rx="44" ry="32" fill="#000"/>
+    </mask>
+  </defs>
+
+  <g mask="url(#cut)" fill="#000">
+    <!-- Rounded triangular ears -->
+    <path d="M158 178 q-16 -84 22 -96 q40 -12 60 74 z"/>
+    <path d="M354 178 q16 -84 -22 -96 q-40 -12 -60 74 z"/>
+    <!-- Head -->
+    <ellipse cx="256" cy="272" rx="140" ry="122"/>
+  </g>
+</svg>

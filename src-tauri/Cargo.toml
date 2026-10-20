@@ -1,0 +1,37 @@
+[package]
+name = "tanuki"
+description = "An unofficial third-party WaniKani review notifier."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+default-run = "tanuki"
+
+[lib]
+name = "tanuki_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "tanuki"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+notifier-core = { workspace = true }
+chrono = { workspace = true }
+rodio = "0.23"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "=2.7.2"
+tauri-plugin-single-instance = "2"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[features]
+# Keeps the console window away on Windows release builds.
+custom-protocol = ["tauri/custom-protocol"]

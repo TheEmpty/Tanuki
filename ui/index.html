@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tanuki</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <header class="header">
+        <img class="mascot" src="mascot.svg" alt="" />
+        <div>
+          <h1>Tanuki</h1>
+          <p class="tagline">An unofficial third-party WaniKani review notifier.</p>
+        </div>
+      </header>
+
+      <section class="status" id="status" aria-live="polite">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Checking…</span>
+      </section>
+
+      <section class="card">
+        <h2>WaniKani account</h2>
+        <p class="hint" id="token-hint">
+          Tanuki needs a personal access token to read your review queue. It is
+          stored in your system's credential store, never in a file.
+        </p>
+        <div class="row">
+          <input
+            id="token"
+            type="password"
+            placeholder="Personal access token"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="save-token" class="primary">Save</button>
+        </div>
+        <div class="row row-links">
+          <a
+            href="https://www.wanikani.com/settings/personal_access_tokens"
+            id="token-link"
+            >Get a token</a
+          >
+          <span class="hint" id="token-state"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Settings</h2>
+
+        <label class="toggle">
+          <input type="checkbox" id="sound" />
+          <span>
+            <strong>Play a sound</strong>
+            <em>Chime when reviews become available.</em>
+          </span>
+        </label>
+
+        <label class="toggle">
+          <input type="checkbox" id="notification" />
+          <span>
+            <strong>Show a notification</strong>
+            <em>Post a system notification when reviews become available.</em>
+          </span>
+        </label>
+
+        <label class="toggle">
+          <input type="checkbox" id="launch-at-login" />
+          <span>
+            <strong>Launch at login</strong>
+            <em>Start Tanuki when you log in.</em>
+          </span>
+        </label>
+
+        <label class="toggle">
+          <input type="checkbox" id="notify-lessons" />
+          <span>
+            <strong>Also announce lessons</strong>
+            <em>Notify when new lessons unlock as well as reviews.</em>
+          </span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Try it out</h2>
+        <div class="row">
+          <button id="test">Play the chime and show a notification</button>
+          <button id="check">Check now</button>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>
+          Tanuki is not affiliated with or endorsed by WaniKani. It only reads
+          your review queue using your own access token.
+        </p>
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
