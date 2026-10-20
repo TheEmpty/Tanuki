@@ -182,17 +182,17 @@ pub fn run() {
                 .launch_at_login;
             apply_autostart(app.handle(), launch_at_login);
 
-            // Without a token there is nothing to do, so show the window and
-            // let the user get started.
-            if state.token().map(|token| token.is_none()).unwrap_or(true) {
-                tray::show_settings(app.handle());
-            }
-
             // The end to end test provides a token on the command line.
             if let Ok(token) = std::env::var("TANUKI_TEST_TOKEN") {
                 if let Err(error) = state.set_token(&token) {
                     eprintln!("tanuki: could not store the test token: {error}");
                 }
+            }
+
+            // Without a token there is nothing to do, so show the window and
+            // let the user get started.
+            if state.token().map(|token| token.is_none()).unwrap_or(true) {
+                tray::show_settings(app.handle());
             }
 
             // Start watching the review queue.
