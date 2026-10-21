@@ -2,6 +2,7 @@
 
 use notifier_core::credential::{CredentialError, TokenStore};
 use notifier_core::detect::Detector;
+use notifier_core::level::LevelWatcher;
 use notifier_core::settings::Settings;
 use notifier_core::theme::Look;
 use std::path::{Path, PathBuf};
@@ -41,6 +42,8 @@ pub struct AppState {
     /// Reading the credential store can ask the operating system for
     /// permission, so it is only done when the token actually changes.
     pub token: Mutex<Option<String>>,
+    /// The level watcher, which notices when the user has levelled up.
+    pub level: Mutex<LevelWatcher>,
     /// The last thing the app found out about the review queue.
     ///
     /// The window asks for this when it opens, so it never has to wait for
@@ -48,6 +51,15 @@ pub struct AppState {
     pub status: Mutex<Status>,
     /// Where the settings file lives.
     pub settings_path: PathBuf,
+    /// Where the state the app remembers lives.
+    pub state_path: PathBuf,
+}
+
+/// What the app remembers between runs.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+struct Remembered {
+    /// The level the user was last seen at.
+    level: Option<u32>,
 }
 
 impl AppState {
@@ -58,8 +70,10 @@ impl AppState {
         status_item: MenuItem<Wry>,
     ) -> Result<Self, SettingsError> {
         let settings_path = config_dir.join("settings.json");
+        let state_path = config_dir.join("state.json");
 
         let settings = read_json(&settings_path)?.unwrap_or_default();
+        let remembered: Remembered = read_json(&state_path)?.unwrap_or_default();
 
         Ok(Self {
             settings: Mutex::new(settings),
@@ -69,8 +83,16 @@ impl AppState {
             status_item,
             credentials,
             token: Mutex::new(None),
+            // The level the user was last seen at is remembered, so a level
+            // up that happened while the app was not running is still
+            // noticed.
+            level: Mutex::new(match remembered.level {
+                Some(level) => LevelWatcher::seen_at(level),
+                None => LevelWatcher::new(),
+            }),
             status: Mutex::new(Status::default()),
             settings_path,
+            state_path,
         })
     }
 
@@ -132,6 +154,31 @@ impl AppState {
             .status
             .lock()
             .expect("the status lock should not be poisoned") = status;
+    }
+
+    /// Feeds in the user's level and reports whether it has gone up.
+    ///
+    /// The level is remembered, so a level up that happened while the app
+    /// was not running is noticed too.
+    pub fn observe_level(&self, level: u32) -> bool {
+        let mut watcher = self
+            .level
+            .lock()
+            .expect("the level lock should not be poisoned");
+
+        let before = watcher.seen();
+        let went_up = watcher.observe(level);
+
+        if watcher.seen() != before {
+            let remembered = Remembered {
+                level: watcher.seen(),
+            };
+            if let Err(error) = write_json(&self.state_path, &remembered) {
+                eprintln!("tanuki: could not remember the level: {error}");
+            }
+        }
+
+        went_up
     }
 
     /// Saves the settings to disk.

@@ -141,6 +141,43 @@ const JINGLE: &[Note] = &[
     Note::steady(1046.50, 0.33, 1.30, 1.00, 0.55), // C6
 ];
 
+/// The partials of a pulse wave, the way a console would have played it.
+///
+/// Only the odd harmonics are there, which is what gives a square wave its
+/// hollow, retro sound.
+const LEVEL_UP_PARTIALS: [Partial; 7] = [
+    (1.0, 1.00, 1.0),
+    // A little of the second harmonic as well, so the tone has some body
+    // rather than being a hollow buzz.
+    (2.0, 0.22, 1.0),
+    (3.0, 0.36, 1.0),
+    (5.0, 0.22, 1.0),
+    (7.0, 0.15, 1.0),
+    (9.0, 0.10, 1.0),
+    (11.0, 0.07, 1.0),
+];
+
+/// The level-up fanfare: a run up and a big landing, the way an old role
+/// playing game announced that you had got stronger.
+const LEVEL_UP: &[Note] = &[
+    // The run up.
+    Note::steady(523.25, 0.00, 0.18, 0.75, 1.6), // C5
+    Note::steady(659.25, 0.09, 0.18, 0.80, 1.6), // E5
+    Note::steady(783.99, 0.18, 0.18, 0.85, 1.6), // G5
+    // The landing: a chord that rings out.
+    Note::steady(1046.50, 0.28, 1.70, 1.00, 0.45), // C6
+    Note::steady(1318.51, 0.34, 1.60, 0.35, 0.50), // E6
+];
+
+/// A sound the app can make.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Sound {
+    /// The chime of a look, played when reviews become available.
+    Chime(Look),
+    /// The fanfare, played when the user has levelled up.
+    LevelUp,
+}
+
 /// A voice: the notes it rings and the tone they are made of.
 struct Voice {
     /// The notes.
@@ -151,23 +188,28 @@ struct Voice {
     duration: f32,
 }
 
-/// The voice a look rings with.
-fn voice(look: Look) -> Voice {
-    match look {
-        Look::Default => Voice {
+/// The voice a sound is made of.
+fn voice(sound: Sound) -> Voice {
+    match sound {
+        Sound::Chime(Look::Default) => Voice {
             notes: BELL,
             partials: &BELL_PARTIALS,
             duration: 1.6,
         },
-        Look::Halloween => Voice {
+        Sound::Chime(Look::Halloween) => Voice {
             notes: SPOOKY,
             partials: &SPOOKY_PARTIALS,
             duration: 2.4,
         },
-        Look::Christmas => Voice {
+        Sound::Chime(Look::Christmas) => Voice {
             notes: JINGLE,
             partials: &CHRISTMAS_PARTIALS,
             duration: 1.8,
+        },
+        Sound::LevelUp => Voice {
+            notes: LEVEL_UP,
+            partials: &LEVEL_UP_PARTIALS,
+            duration: 2.1,
         },
     }
 }
@@ -181,9 +223,9 @@ pub struct Chime {
     pub samples: Vec<f32>,
 }
 
-/// Renders the chime of a look.
-pub fn render(look: Look) -> Chime {
-    let voice = voice(look);
+/// Renders a sound.
+pub fn render(sound: Sound) -> Chime {
+    let voice = voice(sound);
     let total = (voice.duration * SAMPLE_RATE as f32) as usize;
     let mut samples = vec![0.0f32; total];
 
@@ -263,7 +305,7 @@ mod tests {
 
     #[test]
     fn the_chime_has_the_expected_length() {
-        let chime = render(Look::Default);
+        let chime = render(Sound::Chime(Look::Default));
         let expected = (1.6 * SAMPLE_RATE as f32) as usize;
         assert_eq!(chime.samples.len(), expected);
         assert_eq!(chime.sample_rate, SAMPLE_RATE);
@@ -272,7 +314,7 @@ mod tests {
     #[test]
     fn the_chime_stays_within_the_normal_range() {
         for look in Look::ALL {
-            let chime = render(look);
+            let chime = render(Sound::Chime(look));
             assert!(
                 chime.samples.iter().all(|sample| sample.abs() <= 1.0),
                 "the {look:?} samples must not clip"
@@ -283,7 +325,7 @@ mod tests {
     #[test]
     fn the_chime_actually_makes_sound() {
         for look in Look::ALL {
-            let chime = render(look);
+            let chime = render(Sound::Chime(look));
             let loudest = chime.samples.iter().fold(0.0f32, |acc, v| acc.max(v.abs()));
             assert!(loudest > 0.1, "the {look:?} chime should not be silent");
         }
@@ -292,7 +334,7 @@ mod tests {
     #[test]
     fn the_chime_fades_out_at_the_end() {
         for look in Look::ALL {
-            let chime = render(look);
+            let chime = render(Sound::Chime(look));
             let tail = &chime.samples[chime.samples.len() - 100..];
             assert!(tail.iter().all(|sample| sample.abs() < 0.01));
         }
@@ -301,16 +343,16 @@ mod tests {
     #[test]
     fn the_chime_starts_quietly() {
         for look in Look::ALL {
-            let chime = render(look);
+            let chime = render(Sound::Chime(look));
             assert!(chime.samples[0].abs() < 0.05);
         }
     }
 
     #[test]
     fn every_look_sounds_different() {
-        let plain = render(Look::Default);
-        let halloween = render(Look::Halloween);
-        let christmas = render(Look::Christmas);
+        let plain = render(Sound::Chime(Look::Default));
+        let halloween = render(Sound::Chime(Look::Halloween));
+        let christmas = render(Sound::Chime(Look::Christmas));
 
         assert_ne!(plain.samples, halloween.samples);
         assert_ne!(plain.samples, christmas.samples);
@@ -320,7 +362,7 @@ mod tests {
     #[test]
     fn the_halloween_chime_creeps_up_on_you() {
         // The slow attack means the first sound is barely there.
-        let chime = render(Look::Halloween);
+        let chime = render(Sound::Chime(Look::Halloween));
         let loudest = chime.samples.iter().fold(0.0f32, |acc, v| acc.max(v.abs()));
         let early = chime.samples[..(0.05 * SAMPLE_RATE as f32) as usize]
             .iter()
@@ -334,7 +376,7 @@ mod tests {
 
     #[test]
     fn the_second_note_follows_the_first() {
-        let chime = render(Look::Default);
+        let chime = render(Sound::Chime(Look::Default));
         let rate = SAMPLE_RATE as f32;
 
         // Energy in the first note's window versus the gap just before the
@@ -354,7 +396,7 @@ mod tests {
 
     #[test]
     fn the_christmas_run_is_articulated() {
-        let chime = render(Look::Christmas);
+        let chime = render(Sound::Chime(Look::Christmas));
         let rate = SAMPLE_RATE as f32;
 
         for pair in JINGLE[..3].windows(2) {
@@ -392,13 +434,30 @@ mod tests {
                 .count()
         }
 
-        let bell = render(Look::Default);
-        let christmas = render(Look::Christmas);
+        let bell = render(Sound::Chime(Look::Default));
+        let christmas = render(Sound::Chime(Look::Christmas));
 
         assert!(
             crossings(&christmas.samples) > crossings(&bell.samples),
             "the Christmas chime should be brighter than the bell"
         );
+    }
+
+    #[test]
+    fn the_level_up_fanfare_is_its_own_sound() {
+        let bell = render(Sound::Chime(Look::Default));
+        let fanfare = render(Sound::LevelUp);
+
+        assert_ne!(bell.samples, fanfare.samples);
+        assert!(fanfare.samples.len() > bell.samples.len());
+
+        // The fanfare runs up to a landing that rings out, so it is longer
+        // than a plain strike, and the landing is still going a second
+        // later rather than being cut off.
+        let rate = SAMPLE_RATE as f32;
+        let ringing = &fanfare.samples[(0.7 * rate) as usize..(1.0 * rate) as usize];
+        let loudest = ringing.iter().fold(0.0f32, |acc, v| acc.max(v.abs()));
+        assert!(loudest > 0.05, "the landing should still be ringing");
     }
 
     #[test]

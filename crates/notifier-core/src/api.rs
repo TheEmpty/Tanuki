@@ -127,6 +127,8 @@ pub struct WanikaniClient {
     assignments_count: Option<u32>,
     summary_etag: Option<String>,
     summary: Option<Summary>,
+    user_etag: Option<String>,
+    level: Option<u32>,
 }
 
 impl WanikaniClient {
@@ -151,6 +153,8 @@ impl WanikaniClient {
             assignments_count: None,
             summary_etag: None,
             summary: None,
+            user_etag: None,
+            level: None,
         }
     }
 
@@ -218,12 +222,38 @@ impl WanikaniClient {
         Ok(summary)
     }
 
+    /// The user's current level.
+    ///
+    /// The level goes up when the user finishes enough lessons, and is worth
+    /// congratulating them on.
+    pub async fn level(&mut self) -> Result<u32, ApiError> {
+        let url = self.url("user", None)?;
+        let mut request = self.authorised(url);
+        if let Some(etag) = &self.user_etag {
+            request = request.header(IF_NONE_MATCH, etag);
+        }
+
+        let response = request.send().await?;
+        if response.status() == StatusCode::NOT_MODIFIED {
+            return Ok(self.level.unwrap_or_default());
+        }
+        Self::check_status(response.status())?;
+
+        let etag = etag_of(&response);
+        let envelope: UserEnvelope = response.json().await?;
+        self.user_etag = etag;
+        self.level = Some(envelope.data.level);
+        Ok(envelope.data.level)
+    }
+
     /// Forgets any cached responses, so the next call re-reads from the API.
     pub fn invalidate_cache(&mut self) {
         self.assignments_etag = None;
         self.assignments_count = None;
         self.summary_etag = None;
         self.summary = None;
+        self.user_etag = None;
+        self.level = None;
     }
 
     fn url(&self, path: &str, query: Option<&str>) -> Result<Url, ApiError> {
@@ -261,6 +291,19 @@ impl WanikaniClient {
 #[derive(Debug, Clone, Deserialize)]
 struct CountEnvelope {
     total_count: u32,
+}
+
+/// The part of the user endpoint Tanuki cares about.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct UserEnvelope {
+    data: UserData,
+}
+
+/// The user's own details.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct UserData {
+    /// The level the user has reached.
+    level: u32,
 }
 
 fn etag_of(response: &reqwest::Response) -> Option<String> {

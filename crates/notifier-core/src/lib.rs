@@ -9,12 +9,14 @@ pub mod api;
 pub mod chime;
 pub mod credential;
 pub mod detect;
+pub mod level;
 pub mod settings;
 pub mod theme;
 
 pub use api::{ApiError, Summary, SummaryData, WanikaniClient};
-pub use chime::Chime;
+pub use chime::{Chime, Sound};
 pub use credential::{CredentialError, TokenStore};
 pub use detect::{Detector, Event};
+pub use level::LevelWatcher;
 pub use settings::Settings;
 pub use theme::Theme;

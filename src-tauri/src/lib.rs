@@ -158,7 +158,7 @@ fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
         settings.sound_look(Utc::now())
     };
 
-    shared.audio.play(look);
+    shared.audio.play(notifier_core::Sound::Chime(look));
 
     let result = app
         .notification()

@@ -4,8 +4,7 @@
 //! sound device can never hold up the rest of the app. The thread owns the
 //! output stream and is told to play by sending it a message.
 
-use notifier_core::chime::{self, Chime};
-use notifier_core::theme::Look;
+use notifier_core::chime::{self, Chime, Sound};
 use rodio::buffer::SamplesBuffer;
 use rodio::{ChannelCount, Player, SampleRate};
 use std::sync::mpsc::{self, SyncSender, TrySendError};
@@ -13,7 +12,7 @@ use std::sync::mpsc::{self, SyncSender, TrySendError};
 /// Plays the chime on the default audio device.
 #[derive(Debug)]
 pub struct ChimePlayer {
-    sender: SyncSender<Look>,
+    sender: SyncSender<Sound>,
 }
 
 impl ChimePlayer {
@@ -30,12 +29,12 @@ impl ChimePlayer {
         Self { sender }
     }
 
-    /// Plays the chime of a look.
+    /// Plays a sound.
     ///
     /// Does nothing if the sound device is unavailable.
-    pub fn play(&self, look: Look) {
-        // A pending chime is enough; a second one would just overlap.
-        match self.sender.try_send(look) {
+    pub fn play(&self, sound: Sound) {
+        // A pending sound is enough; a second one would just overlap.
+        match self.sender.try_send(sound) {
             Ok(()) => {}
             Err(TrySendError::Full(_)) => {}
             Err(TrySendError::Disconnected(_)) => {}
@@ -44,10 +43,10 @@ impl ChimePlayer {
 }
 
 /// Owns the output stream and plays the chime on request.
-fn audio_thread(receiver: mpsc::Receiver<Look>) {
-    // The chime of the look that was last asked for, so that a look that
-    // rings the same way twice is only rendered once.
-    let mut current: Option<(Look, SamplesBuffer)> = None;
+fn audio_thread(receiver: mpsc::Receiver<Sound>) {
+    // The sound that was last asked for, so that the same one is only
+    // rendered once.
+    let mut current: Option<(Sound, SamplesBuffer)> = None;
 
     // The sink owns the stream that writes to the audio device, so it has to
     // be kept alive for as long as the player. Dropping it ends playback,
@@ -55,9 +54,9 @@ fn audio_thread(receiver: mpsc::Receiver<Look>) {
     let mut _sink: Option<rodio::MixerDeviceSink> = None;
     let mut player: Option<Player> = None;
 
-    while let Ok(look) = receiver.recv() {
-        if current.as_ref().map(|(played, _)| *played) != Some(look) {
-            current = Some((look, to_source(&chime::render(look))));
+    while let Ok(sound) = receiver.recv() {
+        if current.as_ref().map(|(played, _)| *played) != Some(sound) {
+            current = Some((sound, to_source(&chime::render(sound))));
         }
 
         let source = current

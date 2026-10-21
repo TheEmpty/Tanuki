@@ -96,6 +96,20 @@ async fn a_server_error_is_reported_with_its_status() {
 }
 
 #[tokio::test]
+async fn the_level_comes_from_the_user_endpoint() {
+    let server = MockServer::start_with(|path| match path {
+        "/v2/user" => CannedResponse::ok(
+            r#"{"object":"user","data":{"id":"1","username":"tester","level":12}}"#,
+        ),
+        _ => CannedResponse::status("HTTP/1.1 404 Not Found"),
+    });
+    let mut client = client_for(&server);
+
+    assert_eq!(client.level().await.unwrap(), 12);
+    assert!(server.next_request().request_line.contains("/v2/user"));
+}
+
+#[tokio::test]
 async fn the_summary_is_parsed() {
     let server = MockServer::start(CannedResponse::ok(SUMMARY_BODY));
     let mut client = client_for(&server);

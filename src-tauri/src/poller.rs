@@ -4,6 +4,7 @@ use crate::audio::ChimePlayer;
 use crate::state::{AppState, Status};
 use chrono::Utc;
 use notifier_core::api::WanikaniClient;
+use notifier_core::chime::Sound;
 use notifier_core::detect::{next_poll_delay, Event};
 use notifier_core::theme::Look;
 use std::sync::Arc;
@@ -107,6 +108,14 @@ async fn check(
         Err(_) => None,
     };
 
+    // The level goes up when enough lessons have been finished, which is
+    // worth congratulating the user about.
+    if let Ok(level) = client.level().await {
+        if state.observe_level(level) {
+            announce_level_up(app, state, audio, level);
+        }
+    }
+
     // The detector starts fresh each launch, so reviews that were already
     // waiting are announced when the app starts.
     let event = {
@@ -152,7 +161,7 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
         .clone();
 
     if settings.sound {
-        audio.play(settings.sound_look(Utc::now()));
+        audio.play(Sound::Chime(settings.sound_look(Utc::now())));
     }
 
     if settings.notification {
@@ -165,6 +174,33 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
             .builder()
             .title("Your reviews are ready")
             .body(body)
+            .show();
+        if let Err(error) = result {
+            eprintln!("tanuki: could not show the notification: {error}");
+        }
+    }
+}
+
+/// Tells the user that they have levelled up.
+fn announce_level_up(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, level: u32) {
+    let settings = state
+        .settings
+        .lock()
+        .expect("the settings lock should not be poisoned")
+        .clone();
+
+    // The fanfare is the same whatever the theme is doing: it is the sound
+    // of levelling up, and no theme has a better one.
+    if settings.sound {
+        audio.play(Sound::LevelUp);
+    }
+
+    if settings.notification {
+        let result = app
+            .notification()
+            .builder()
+            .title("Level up!")
+            .body(format!("You reached level {level}."))
             .show();
         if let Err(error) = result {
             eprintln!("tanuki: could not show the notification: {error}");

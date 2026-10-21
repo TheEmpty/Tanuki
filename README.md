@@ -14,6 +14,7 @@ nothing but your review queue.
 
 - Watches the WaniKani API for reviews that are ready to be done.
 - Plays a short bell chime and posts a system notification when that happens.
+- Notices when you level up, and celebrates it with a fanfare of its own.
 - Shows the number of waiting reviews in the tray menu.
 - Can start automatically when you log in.
 - Keeps your access token in the app's own configuration directory, in a file
@@ -88,7 +89,8 @@ instead.
 crates/notifier-core/   pure Rust, no user interface
   api.rs                the WaniKani API client
   detect.rs             decides when reviews count as "new"
-  chime.rs              synthesises the bell
+  level.rs              notices when the user has levelled up
+  chime.rs              synthesises the bell and the fanfare
   credential.rs         where the token is kept
   settings.rs           the user's preferences
   theme.rs              the themes the user can pick
@@ -130,6 +132,11 @@ Each look has its own voice. The plain one is a two-note bell: a bright upper
 note and a lower one. Halloween is a sour, slow fall that creeps up on you
 over most of a second. Christmas is a run of sleigh bells going up, each one
 a separate strike, and then one that rings out.
+
+Levelling up has a fanfare of its own, in the manner of an old role playing
+game: a run up to a big landing that rings out, played on a pulse wave the
+way a console would have. It is the same whatever the theme is doing, since
+no theme has a better way of saying congratulations.
 
 There are two things to a theme. The user picks a *theme* — Automatic, Match
 System, Halloween or Christmas — and that is turned into the *look* that is
