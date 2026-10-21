@@ -1,6 +1,7 @@
 //! User-adjustable settings.
 
-use crate::theme::Theme;
+use crate::theme::{Look, Theme};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Everything the user can configure.
@@ -21,6 +22,11 @@ pub struct Settings {
 
     /// The look and sound of the app.
     pub theme: Theme,
+
+    /// Whether the theme is allowed to pick the chime.
+    ///
+    /// When this is off, the standard bell is played whatever the theme is.
+    pub themed_sounds: bool,
 }
 
 impl Default for Settings {
@@ -33,6 +39,23 @@ impl Default for Settings {
             launch_at_login: true,
             notify_lessons: false,
             theme: Theme::default(),
+            // The themes are the point of the themes, so they get to pick the
+            // chime unless the user says otherwise.
+            themed_sounds: true,
+        }
+    }
+}
+
+impl Settings {
+    /// The look whose chime should be played.
+    ///
+    /// The user can turn the themed sounds off, in which case the standard
+    /// bell is played whatever the theme is.
+    pub fn sound_look(&self, now: DateTime<Utc>) -> Look {
+        if self.themed_sounds {
+            self.theme.resolve(now)
+        } else {
+            Look::Default
         }
     }
 }
@@ -49,6 +72,7 @@ mod tests {
         assert!(settings.launch_at_login);
         assert!(!settings.notify_lessons);
         assert_eq!(settings.theme, Theme::Automatic);
+        assert!(settings.themed_sounds);
     }
 
     #[test]
@@ -59,6 +83,7 @@ mod tests {
             launch_at_login: true,
             notify_lessons: true,
             theme: Theme::Halloween,
+            themed_sounds: false,
         };
         let encoded = serde_json::to_string(&settings).unwrap();
         let decoded: Settings = serde_json::from_str(&encoded).unwrap();
@@ -79,5 +104,28 @@ mod tests {
         )
         .unwrap();
         assert_eq!(decoded.theme, Theme::Automatic);
+        assert!(decoded.themed_sounds);
+    }
+
+    #[test]
+    fn the_theme_picks_the_chime_when_it_is_allowed_to() {
+        let now = Utc::now();
+        let settings = Settings {
+            theme: Theme::Halloween,
+            themed_sounds: true,
+            ..Settings::default()
+        };
+        assert_eq!(settings.sound_look(now), Look::Halloween);
+    }
+
+    #[test]
+    fn the_standard_bell_is_played_when_the_themes_are_not_allowed_to() {
+        let now = Utc::now();
+        let settings = Settings {
+            theme: Theme::Halloween,
+            themed_sounds: false,
+            ..Settings::default()
+        };
+        assert_eq!(settings.sound_look(now), Look::Default);
     }
 }

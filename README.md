@@ -23,6 +23,8 @@ nothing but your review queue.
   light or dark appearance for the rest of the year. *Match System* always
   follows the system's appearance and never brings a season, and *Halloween*
   and *Christmas* can be picked all year round.
+- Lets you turn the themed sounds off, so the chime stays the same whatever
+  the theme is doing.
 
 It only notifies when reviews *newly* become available. A queue that stays
 pending does not nag you, and the notification comes back after you clear it.
@@ -117,6 +119,9 @@ actually in use. The automatic theme follows the season, so it is Halloween in
 October and Christmas in December; the match system theme never is. The look
 decides the colours and the chime, and the app works it out on its own, which
 is why a theme that was never picked still changes on the first of the month.
+
+The user can also turn the themed sounds off. The colours still follow the
+theme, but the standard bell is played whatever the theme is doing.
 
 ## Development
 

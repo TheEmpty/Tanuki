@@ -146,13 +146,14 @@ fn clear_token(app: AppHandle, shared: State<'_, Shared>) -> Result<(), String> 
 /// Plays the chime and shows a notification, so the user can check them.
 #[tauri::command]
 fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
-    let look = shared
-        .state
-        .settings
-        .lock()
-        .expect("the settings lock should not be poisoned")
-        .theme
-        .resolve(Utc::now());
+    let look = {
+        let settings = shared
+            .state
+            .settings
+            .lock()
+            .expect("the settings lock should not be poisoned");
+        settings.sound_look(Utc::now())
+    };
 
     shared.audio.play(look);
 

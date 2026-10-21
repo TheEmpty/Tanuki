@@ -22,6 +22,7 @@ const elements = {
   tokenLink: document.getElementById("token-link"),
   tokenState: document.getElementById("token-state"),
   sound: document.getElementById("sound"),
+  themedSounds: document.getElementById("themed-sounds"),
   notification: document.getElementById("notification"),
   launchAtLogin: document.getElementById("launch-at-login"),
   notifyLessons: document.getElementById("notify-lessons"),
@@ -55,12 +56,14 @@ function readSettings() {
     launch_at_login: elements.launchAtLogin.checked,
     notify_lessons: elements.notifyLessons.checked,
     theme: elements.theme.value,
+    themed_sounds: elements.themedSounds.checked,
   };
 }
 
 /** Fills the settings with the saved ones. */
 function writeSettings(settings) {
   elements.sound.checked = settings.sound;
+  elements.themedSounds.checked = settings.themed_sounds;
   elements.notification.checked = settings.notification;
   elements.launchAtLogin.checked = settings.launch_at_login;
   elements.notifyLessons.checked = settings.notify_lessons;
@@ -105,6 +108,7 @@ async function load() {
 function watchToggles() {
   for (const element of [
     elements.sound,
+    elements.themedSounds,
     elements.notification,
     elements.launchAtLogin,
     elements.notifyLessons,
