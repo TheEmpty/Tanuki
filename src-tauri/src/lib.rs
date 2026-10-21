@@ -165,15 +165,27 @@ fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
 
     shared.audio.play(notifier_core::Sound::Chime(look));
 
-    let result = app
-        .notification()
-        .builder()
-        .title("Tanuki")
-        .body("This is what a review notification looks like.")
-        .show();
-    if let Err(error) = result {
-        eprintln!("tanuki: could not show the test notification: {error}");
-    }
+    // macOS does not put a banner up for a notification from the app that is
+    // in front; it goes straight into Notification Center. The window is put
+    // away first so that the test looks like the real thing, which is a
+    // banner in the corner of the screen.
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        hide_window(handle.clone());
+
+        // Give macOS a moment to notice that the app is no longer in front.
+        std::thread::sleep(std::time::Duration::from_millis(400));
+
+        let result = handle
+            .notification()
+            .builder()
+            .title("Tanuki")
+            .body("This is what a review notification looks like.")
+            .show();
+        if let Err(error) = result {
+            eprintln!("tanuki: could not show the test notification: {error}");
+        }
+    });
 }
 
 /// Opens the page where WaniKani personal access tokens live.
