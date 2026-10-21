@@ -4,7 +4,11 @@
 //! binary small and lets the tone be tuned in code. It is a two-note bell:
 //! a bright upper note followed by a lower one, each built from a handful of
 //! inharmonic partials the way a struck bell is.
+//!
+//! Each theme has its own voice, so a seasonal theme can ring differently
+//! from the one the app launched with.
 
+use crate::theme::Theme;
 use std::f32::consts::TAU;
 
 /// The sample rate the chime is generated at.
@@ -39,8 +43,8 @@ const PARTIALS: [(f32, f32, f32); 5] = [
     (4.5, 0.12, 3.2),
 ];
 
-/// The two notes that make up the chime: a high "ding" and a low "dong".
-const NOTES: [Note; 2] = [
+/// The two notes of the bell: a high "ding" and a low "dong".
+const BELL: &[Note] = &[
     Note {
         frequency: 1_318.51, // E6
         offset: 0.0,
@@ -64,12 +68,23 @@ pub struct Chime {
     pub samples: Vec<f32>,
 }
 
-/// Renders the chime.
-pub fn render() -> Chime {
+/// The voice a theme rings with.
+///
+/// Both themes share the bell for now. A new theme brings its own notes
+/// here, and nothing else in the app has to change.
+fn voice(theme: Theme) -> &'static [Note] {
+    match theme {
+        Theme::Automatic => BELL,
+        Theme::LaunchPurple => BELL,
+    }
+}
+
+/// Renders the chime for a theme.
+pub fn render(theme: Theme) -> Chime {
     let total = (DURATION_SECONDS * SAMPLE_RATE as f32) as usize;
     let mut samples = vec![0.0f32; total];
 
-    for note in &NOTES {
+    for note in voice(theme) {
         render_note(note, &mut samples);
     }
 
@@ -119,7 +134,9 @@ fn fade_out(samples: &mut [f32], length: usize) {
 
 /// Scales the buffer so its loudest sample reaches `peak`.
 fn normalise(samples: &mut [f32], peak: f32) {
-    let loudest = samples.iter().fold(0.0f32, |acc, value| acc.max(value.abs()));
+    let loudest = samples
+        .iter()
+        .fold(0.0f32, |acc, value| acc.max(value.abs()));
     if loudest <= f32::EPSILON {
         return;
     }
@@ -134,7 +151,7 @@ mod tests {
 
     #[test]
     fn the_chime_has_the_expected_length() {
-        let chime = render();
+        let chime = render(Theme::Automatic);
         let expected = (DURATION_SECONDS * SAMPLE_RATE as f32) as usize;
         assert_eq!(chime.samples.len(), expected);
         assert_eq!(chime.sample_rate, SAMPLE_RATE);
@@ -142,7 +159,7 @@ mod tests {
 
     #[test]
     fn the_chime_stays_within_the_normal_range() {
-        let chime = render();
+        let chime = render(Theme::Automatic);
         assert!(
             chime.samples.iter().all(|sample| sample.abs() <= 1.0),
             "samples must not clip"
@@ -151,27 +168,40 @@ mod tests {
 
     #[test]
     fn the_chime_actually_makes_sound() {
-        let chime = render();
+        let chime = render(Theme::Automatic);
         let loudest = chime.samples.iter().fold(0.0f32, |acc, v| acc.max(v.abs()));
         assert!(loudest > 0.1, "the chime should not be silent");
     }
 
     #[test]
     fn the_chime_fades_out_at_the_end() {
-        let chime = render();
+        let chime = render(Theme::Automatic);
         let tail = &chime.samples[chime.samples.len() - 100..];
         assert!(tail.iter().all(|sample| sample.abs() < 0.01));
     }
 
     #[test]
     fn the_chime_starts_quietly() {
-        let chime = render();
+        let chime = render(Theme::Automatic);
         assert!(chime.samples[0].abs() < 0.05);
     }
 
     #[test]
+    fn every_theme_rings_something() {
+        for theme in Theme::ALL {
+            let chime = render(theme);
+            let loudest = chime.samples.iter().fold(0.0f32, |acc, v| acc.max(v.abs()));
+            assert!(loudest > 0.1, "the {theme:?} theme should not be silent");
+            assert_eq!(
+                chime.samples.len(),
+                (DURATION_SECONDS * SAMPLE_RATE as f32) as usize
+            );
+        }
+    }
+
+    #[test]
     fn the_second_note_follows_the_first() {
-        let chime = render();
+        let chime = render(Theme::Automatic);
         let rate = SAMPLE_RATE as f32;
 
         // Energy in the first note's window versus the gap just before the

@@ -18,6 +18,9 @@ nothing but your review queue.
 - Can start automatically when you log in.
 - Keeps your access token in your system's credential store (Keychain on
   macOS, Credential Manager on Windows) rather than in a file.
+- Has themes, which set the colours and the sound together. *Automatic* follows
+  the system's light or dark appearance; *Launch Purple* is the theme Tanuki
+  launched with.
 
 It only notifies when reviews *newly* become available. A queue that stays
 pending does not nag you, and the notification comes back after you clear it.
@@ -79,6 +82,7 @@ crates/notifier-core/   pure Rust, no user interface
   chime.rs              synthesises the bell
   credential.rs         the token store
   settings.rs           the user's preferences
+  theme.rs              the themes the user can pick
 
 src-tauri/              the Tauri application
   poller.rs             the background polling loop
@@ -100,6 +104,11 @@ remembers whether reviews were pending and only reports a change on the
 transition from "nothing waiting" to "something waiting". It starts fresh on
 every launch, which is why reviews that are already waiting are announced when
 Tanuki starts.
+
+A theme is a set of colours and a chime. The colours live in the interface as
+CSS variables, and the chime is rendered from the notes the theme names, so
+adding Halloween or Christmas means adding a theme rather than picking over
+the app.
 
 ## Development
 

@@ -32,6 +32,27 @@ struct WindowSettings {
     pub settings: notifier_core::Settings,
 }
 
+/// A theme the user can pick, as it is shown in the dropdown.
+#[derive(Debug, Clone, serde::Serialize)]
+struct ThemeOption {
+    /// The identifier that is stored in the settings.
+    pub id: String,
+    /// The name to show.
+    pub name: String,
+}
+
+/// Returns every theme the user can pick.
+#[tauri::command]
+fn get_themes() -> Vec<ThemeOption> {
+    notifier_core::Theme::ALL
+        .iter()
+        .map(|theme| ThemeOption {
+            id: theme.id().to_owned(),
+            name: theme.name().to_owned(),
+        })
+        .collect()
+}
+
 /// Returns whether a token is saved and the current settings.
 #[tauri::command]
 fn get_settings(shared: State<'_, Shared>) -> WindowSettings {
@@ -114,7 +135,15 @@ fn clear_token(app: AppHandle, shared: State<'_, Shared>) -> Result<(), String> 
 /// Plays the chime and shows a notification, so the user can check them.
 #[tauri::command]
 fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
-    shared.audio.play();
+    let theme = shared
+        .state
+        .settings
+        .lock()
+        .expect("the settings lock should not be poisoned")
+        .theme;
+
+    shared.audio.play(theme);
+
     let result = app
         .notification()
         .builder()
@@ -217,6 +246,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_settings,
             get_status,
+            get_themes,
             save_settings,
             save_token,
             clear_token,

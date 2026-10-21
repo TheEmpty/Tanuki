@@ -17,6 +17,7 @@ const elements = {
   notification: document.getElementById("notification"),
   launchAtLogin: document.getElementById("launch-at-login"),
   notifyLessons: document.getElementById("notify-lessons"),
+  theme: document.getElementById("theme"),
   test: document.getElementById("test"),
 };
 
@@ -26,28 +27,54 @@ function message(text, isError = false) {
   elements.tokenState.classList.toggle("error", isError);
 }
 
-/** Reads the current value of every toggle. */
+/** Applies a theme to the window. */
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+}
+
+/** Reads the current value of every setting. */
 function readSettings() {
   return {
     sound: elements.sound.checked,
     notification: elements.notification.checked,
     launch_at_login: elements.launchAtLogin.checked,
     notify_lessons: elements.notifyLessons.checked,
+    theme: elements.theme.value,
   };
 }
 
-/** Fills the toggles with the saved settings. */
+/** Fills the settings with the saved ones. */
 function writeSettings(settings) {
   elements.sound.checked = settings.sound;
   elements.notification.checked = settings.notification;
   elements.launchAtLogin.checked = settings.launch_at_login;
   elements.notifyLessons.checked = settings.notify_lessons;
+  elements.theme.value = settings.theme;
+
+  // A theme from a newer version of the app is not in the list, so fall
+  // back to the first one rather than leaving the picker empty.
+  if (!elements.theme.value) {
+    elements.theme.value = elements.theme.options[0].value;
+  }
+}
+
+/** Fills the theme picker with the themes the app offers. */
+async function fillThemes() {
+  for (const theme of await invoke("get_themes")) {
+    const option = document.createElement("option");
+    option.value = theme.id;
+    option.textContent = theme.name;
+    elements.theme.append(option);
+  }
 }
 
 /** Loads the saved settings and the token state. */
 async function load() {
+  await fillThemes();
+
   const current = await invoke("get_settings");
   writeSettings(current.settings);
+  applyTheme(current.settings.theme);
 
   if (current.configured) {
     elements.token.placeholder = "••••••••  (a token is saved)";
@@ -59,15 +86,22 @@ async function load() {
   }
 }
 
-/** Saves the settings whenever a toggle changes. */
+/** Saves the settings whenever one of them changes. */
 function watchToggles() {
   for (const element of [
     elements.sound,
     elements.notification,
     elements.launchAtLogin,
     elements.notifyLessons,
+    elements.theme,
   ]) {
     element.addEventListener("change", async () => {
+      // A new theme is put on straight away, so the window changes colour
+      // as soon as it is picked.
+      if (element === elements.theme) {
+        applyTheme(elements.theme.value);
+      }
+
       try {
         await invoke("save_settings", { settings: readSettings() });
       } catch (error) {

@@ -5,6 +5,7 @@
 //! output stream and is told to play by sending it a message.
 
 use notifier_core::chime::{self, Chime};
+use notifier_core::theme::Theme;
 use rodio::buffer::SamplesBuffer;
 use rodio::{ChannelCount, Player, SampleRate};
 use std::sync::mpsc::{self, SyncSender, TrySendError};
@@ -12,7 +13,7 @@ use std::sync::mpsc::{self, SyncSender, TrySendError};
 /// Plays the chime on the default audio device.
 #[derive(Debug)]
 pub struct ChimePlayer {
-    sender: SyncSender<()>,
+    sender: SyncSender<Theme>,
 }
 
 impl ChimePlayer {
@@ -29,12 +30,12 @@ impl ChimePlayer {
         Self { sender }
     }
 
-    /// Plays the chime.
+    /// Plays the chime of a theme.
     ///
     /// Does nothing if the sound device is unavailable.
-    pub fn play(&self) {
+    pub fn play(&self, theme: Theme) {
         // A pending chime is enough; a second one would just overlap.
-        match self.sender.try_send(()) {
+        match self.sender.try_send(theme) {
             Ok(()) => {}
             Err(TrySendError::Full(_)) => {}
             Err(TrySendError::Disconnected(_)) => {}
@@ -43,9 +44,10 @@ impl ChimePlayer {
 }
 
 /// Owns the output stream and plays the chime on request.
-fn audio_thread(receiver: mpsc::Receiver<()>) {
-    let chime = chime::render();
-    let source = to_source(&chime);
+fn audio_thread(receiver: mpsc::Receiver<Theme>) {
+    // The chime of the theme that was last asked for, so that a theme that
+    // rings the same way twice is only rendered once.
+    let mut current: Option<(Theme, SamplesBuffer)> = None;
 
     // The sink owns the stream that writes to the audio device, so it has to
     // be kept alive for as long as the player. Dropping it ends playback,
@@ -53,7 +55,17 @@ fn audio_thread(receiver: mpsc::Receiver<()>) {
     let mut _sink: Option<rodio::MixerDeviceSink> = None;
     let mut player: Option<Player> = None;
 
-    while receiver.recv().is_ok() {
+    while let Ok(theme) = receiver.recv() {
+        if current.as_ref().map(|(played, _)| *played) != Some(theme) {
+            current = Some((theme, to_source(&chime::render(theme))));
+        }
+
+        let source = current
+            .as_ref()
+            .expect("the chime was just rendered")
+            .1
+            .clone();
+
         if player.is_none() {
             match rodio::DeviceSinkBuilder::open_default_sink() {
                 Ok(device) => {
@@ -70,7 +82,7 @@ fn audio_thread(receiver: mpsc::Receiver<()>) {
         }
 
         let player = player.as_ref().expect("the player was just created");
-        player.append(source.clone());
+        player.append(source);
     }
 }
 

@@ -147,7 +147,7 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
         .clone();
 
     if settings.sound {
-        audio.play();
+        audio.play(settings.theme);
     }
 
     if settings.notification {

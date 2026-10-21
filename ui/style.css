@@ -1,14 +1,49 @@
+/*
+ * The colours of the app live in these variables. A theme is a set of them:
+ * the automatic theme follows the system's light or dark appearance, and
+ * Launch Purple is the theme Tanuki launched with.
+ */
 :root {
+  color-scheme: light dark;
+
+  --bg: #f3f1ec;
+  --card: #ffffff;
+  --card-edge: #e0dbd0;
+  --ink: #241f3d;
+  --ink-dim: #6b6484;
+  --teal: #0f7d78;
+  --on-teal: #ffffff;
+  --coral: #d11a4a;
+  --gold: #8a6300;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1a20;
+    --card: #25242c;
+    --card-edge: #3a3843;
+    --ink: #f2efe8;
+    --ink-dim: #a9a3b5;
+    --teal: #3ec6c0;
+    --on-teal: #14323a;
+    --coral: #f2426b;
+    --gold: #f7c948;
+  }
+}
+
+/* Launch Purple is the theme Tanuki launched with. It is always dark. */
+[data-theme="launch-purple"] {
+  color-scheme: dark;
+
   --bg: #2e2a5e;
   --card: #3a3470;
   --card-edge: #4a4386;
   --ink: #f4f1e8;
   --ink-dim: #b9b3d6;
   --teal: #3ec6c0;
-  --teal-dark: #31afa9;
+  --on-teal: #14323a;
   --coral: #f2426b;
   --gold: #f7c948;
-  --tan: #d9974a;
 }
 
 * {
@@ -155,6 +190,27 @@ input[type="password"]:focus {
   outline-offset: -1px;
 }
 
+input[type="password"]::placeholder {
+  color: var(--ink-dim);
+  opacity: 0.75;
+}
+
+select {
+  background: var(--bg);
+  border: 1px solid var(--card-edge);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.4375rem 0.625rem;
+  max-width: 12rem;
+}
+
+select:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: -1px;
+}
+
 button {
   background: var(--card-edge);
   border: 1px solid transparent;
@@ -173,7 +229,7 @@ button:hover {
 
 button.primary {
   background: var(--teal);
-  color: #14323a;
+  color: var(--on-teal);
   font-weight: 600;
 }
 
@@ -221,6 +277,23 @@ a {
   color: var(--ink-dim);
   font-size: 0.8125rem;
   font-style: normal;
+}
+
+/* The theme row is a field rather than a switch, so the picker sits on the
+   right instead of the left. */
+.toggle-theme {
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: default;
+}
+
+.toggle-theme > span {
+  min-width: 0;
+}
+
+.toggle-theme select {
+  flex: none;
 }
 
 .footer {
