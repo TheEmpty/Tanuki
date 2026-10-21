@@ -77,11 +77,17 @@ The icons are generated from the SVG sources in `assets/`:
 ```sh
 cargo tauri icon assets/icon.svg                 # the app icon
 cargo tauri icon assets/tray-template.svg -o src-tauri/tray-icons --png 44
+mv src-tauri/tray-icons/44x44.png src-tauri/tray-icons/macos-template.png
 ```
 
 The menu bar icon is a *template* image: macOS recolours it so it stays
 legible in light and dark menu bars. Windows gets the full colour mascot
 instead.
+
+The template image is 44 by 44, which macOS draws at 22 points. The
+viewBox in `assets/tray-template.svg` is cropped tightly around the
+drawing so the head fills the height of the icon, the way the other
+menu bar icons do.
 
 ## How it works
 
