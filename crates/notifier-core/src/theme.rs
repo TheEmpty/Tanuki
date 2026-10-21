@@ -24,6 +24,8 @@ pub enum Theme {
     /// Follow the season, and the system's light or dark appearance.
     #[default]
     Automatic,
+    /// Always follow the system's light or dark appearance, never a season.
+    MatchSystem,
     /// Halloween, all year round.
     Halloween,
     /// Christmas, all year round.
@@ -32,12 +34,18 @@ pub enum Theme {
 
 impl Theme {
     /// Every theme, in the order they should be offered.
-    pub const ALL: [Theme; 3] = [Theme::Automatic, Theme::Halloween, Theme::Christmas];
+    pub const ALL: [Theme; 4] = [
+        Theme::Automatic,
+        Theme::MatchSystem,
+        Theme::Halloween,
+        Theme::Christmas,
+    ];
 
     /// A stable identifier, used in the settings file and by the interface.
     pub fn id(self) -> &'static str {
         match self {
             Theme::Automatic => "automatic",
+            Theme::MatchSystem => "match-system",
             Theme::Halloween => "halloween",
             Theme::Christmas => "christmas",
         }
@@ -47,6 +55,7 @@ impl Theme {
     pub fn name(self) -> &'static str {
         match self {
             Theme::Automatic => "Automatic (Default)",
+            Theme::MatchSystem => "Match System",
             Theme::Halloween => "Halloween",
             Theme::Christmas => "Christmas",
         }
@@ -68,6 +77,7 @@ impl Theme {
                 DECEMBER => Look::Christmas,
                 _ => Look::Default,
             },
+            Theme::MatchSystem => Look::Default,
             Theme::Halloween => Look::Halloween,
             Theme::Christmas => Look::Christmas,
         }
@@ -164,6 +174,7 @@ mod tests {
     #[test]
     fn the_names_are_the_ones_the_interface_shows() {
         assert_eq!(Theme::Automatic.name(), "Automatic (Default)");
+        assert_eq!(Theme::MatchSystem.name(), "Match System");
         assert_eq!(Theme::Halloween.name(), "Halloween");
         assert_eq!(Theme::Christmas.name(), "Christmas");
     }
@@ -219,6 +230,17 @@ mod tests {
         for month in 1..=12 {
             assert_eq!(Theme::Halloween.resolve(in_month(month)), Look::Halloween);
             assert_eq!(Theme::Christmas.resolve(in_month(month)), Look::Christmas);
+        }
+    }
+
+    #[test]
+    fn the_match_system_theme_never_turns_into_a_season() {
+        for month in 1..=12 {
+            assert_eq!(
+                Theme::MatchSystem.resolve(in_month(month)),
+                Look::Default,
+                "month {month} should stay plain"
+            );
         }
     }
 

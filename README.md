@@ -20,8 +20,9 @@ nothing but your review queue.
   macOS, Credential Manager on Windows) rather than in a file.
 - Has themes, which set the colours and the sound together. *Automatic* follows
   the season — Halloween in October, Christmas in December — and the system's
-  light or dark appearance for the rest of the year. *Halloween* and
-  *Christmas* can be picked all year round.
+  light or dark appearance for the rest of the year. *Match System* always
+  follows the system's appearance and never brings a season, and *Halloween*
+  and *Christmas* can be picked all year round.
 
 It only notifies when reviews *newly* become available. A queue that stays
 pending does not nag you, and the notification comes back after you clear it.
@@ -110,12 +111,12 @@ A theme is a set of colours and a chime. The colours live in the interface as
 CSS variables, and the chime is rendered from the notes the theme names, so
 adding another season means adding a theme rather than picking over the app.
 
-There are two things to a theme. The user picks a *theme* — Automatic,
-Halloween or Christmas — and that is turned into the *look* that is actually
-in use. The automatic theme follows the season, so it is Halloween in October
-and Christmas in December. The look decides the colours and the chime, and
-the app works it out on its own, which is why a theme that was never picked
-still changes on the first of the month.
+There are two things to a theme. The user picks a *theme* — Automatic, Match
+System, Halloween or Christmas — and that is turned into the *look* that is
+actually in use. The automatic theme follows the season, so it is Halloween in
+October and Christmas in December; the match system theme never is. The look
+decides the colours and the chime, and the app works it out on its own, which
+is why a theme that was never picked still changes on the first of the month.
 
 ## Development
 
