@@ -24,6 +24,7 @@ const elements = {
   sound: document.getElementById("sound"),
   themedSounds: document.getElementById("themed-sounds"),
   notification: document.getElementById("notification"),
+  announceLevelUps: document.getElementById("announce-level-ups"),
   launchAtLogin: document.getElementById("launch-at-login"),
   notifyLessons: document.getElementById("notify-lessons"),
   quitWithCommandQ: document.getElementById("quit-with-command-q"),
@@ -54,6 +55,7 @@ function readSettings() {
   return {
     sound: elements.sound.checked,
     notification: elements.notification.checked,
+    announce_level_ups: elements.announceLevelUps.checked,
     launch_at_login: elements.launchAtLogin.checked,
     notify_lessons: elements.notifyLessons.checked,
     quit_with_command_q: elements.quitWithCommandQ.checked,
@@ -67,6 +69,7 @@ function writeSettings(settings) {
   elements.sound.checked = settings.sound;
   elements.themedSounds.checked = settings.themed_sounds;
   elements.notification.checked = settings.notification;
+  elements.announceLevelUps.checked = settings.announce_level_ups;
   elements.launchAtLogin.checked = settings.launch_at_login;
   elements.notifyLessons.checked = settings.notify_lessons;
   elements.quitWithCommandQ.checked = settings.quit_with_command_q;
@@ -113,6 +116,7 @@ function watchToggles() {
     elements.sound,
     elements.themedSounds,
     elements.notification,
+    elements.announceLevelUps,
     elements.launchAtLogin,
     elements.notifyLessons,
     elements.quitWithCommandQ,

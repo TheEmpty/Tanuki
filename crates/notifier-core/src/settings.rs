@@ -30,6 +30,9 @@ pub struct Settings {
 
     /// Whether Command-Q quits the app rather than putting the window away.
     pub quit_with_command_q: bool,
+
+    /// Whether levelling up is worth saying anything about.
+    pub announce_level_ups: bool,
 }
 
 impl Default for Settings {
@@ -48,6 +51,9 @@ impl Default for Settings {
             // Tanuki is meant to stay out of the way, so Command-Q only puts
             // the window away unless the user asks for it to quit.
             quit_with_command_q: false,
+            // Congratulating somebody on their level is a nice thing to do, so
+            // it is on unless they say otherwise.
+            announce_level_ups: true,
         }
     }
 }
@@ -80,6 +86,7 @@ mod tests {
         assert_eq!(settings.theme, Theme::Automatic);
         assert!(settings.themed_sounds);
         assert!(!settings.quit_with_command_q);
+        assert!(settings.announce_level_ups);
     }
 
     #[test]
@@ -92,6 +99,7 @@ mod tests {
             theme: Theme::Halloween,
             themed_sounds: false,
             quit_with_command_q: true,
+            announce_level_ups: false,
         };
         let encoded = serde_json::to_string(&settings).unwrap();
         let decoded: Settings = serde_json::from_str(&encoded).unwrap();

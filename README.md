@@ -15,6 +15,7 @@ nothing but your review queue.
 - Watches the WaniKani API for reviews that are ready to be done.
 - Plays a short bell chime and posts a system notification when that happens.
 - Notices when you level up, and celebrates it with a fanfare of its own.
+  You can turn that off if you would rather not be told.
 - Shows the number of waiting reviews in the tray menu.
 - Can start automatically when you log in.
 - Keeps your access token in the app's own configuration directory, in a file

@@ -109,9 +109,11 @@ async fn check(
     };
 
     // The level goes up when enough lessons have been finished, which is
-    // worth congratulating the user about.
+    // worth congratulating the user about — unless they have said not to.
+    // The level is still watched either way, so turning the setting back on
+    // does not announce everything that happened in the meantime.
     if let Ok(level) = client.level().await {
-        if state.observe_level(level) {
+        if state.observe_level(level) && announces_level_ups(state) {
             announce_level_up(app, state, audio, level);
         }
     }
@@ -179,6 +181,15 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
             eprintln!("tanuki: could not show the notification: {error}");
         }
     }
+}
+
+/// Whether levelling up is worth saying anything about.
+fn announces_level_ups(state: &Arc<AppState>) -> bool {
+    state
+        .settings
+        .lock()
+        .expect("the settings lock should not be poisoned")
+        .announce_level_ups
 }
 
 /// Tells the user that they have levelled up.

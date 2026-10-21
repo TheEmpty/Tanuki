@@ -95,7 +95,7 @@ body {
 main {
   max-width: 30rem;
   margin: 0 auto;
-  padding: 1rem 1.25rem 1rem;
+  padding: 1rem 1.25rem 0.75rem;
 }
 
 .header {
@@ -169,7 +169,7 @@ h2 {
   background: var(--card);
   border: 1px solid var(--card-edge);
   border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 0.6875rem 1rem;
   margin-bottom: 0.625rem;
 }
 
@@ -273,7 +273,7 @@ a {
   display: flex;
   align-items: flex-start;
   gap: 0.625rem;
-  padding: 0.25rem 0;
+  padding: 0.1875rem 0;
   cursor: pointer;
 }
 
@@ -323,7 +323,7 @@ a {
   color: var(--ink-dim);
   font-size: 0.75rem;
   text-align: center;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 }
 
 .footer p {
