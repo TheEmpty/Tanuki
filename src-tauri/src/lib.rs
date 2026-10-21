@@ -103,17 +103,22 @@ fn save_settings(
     shared: State<'_, Shared>,
     settings: notifier_core::Settings,
 ) -> Result<Look, SettingsError> {
-    let (launch_at_login, look) = {
+    let (launch_at_login, quits, look) = {
         let mut current = shared
             .state
             .settings
             .lock()
             .expect("the settings lock should not be poisoned");
         *current = settings;
-        (current.launch_at_login, current.theme.resolve(Utc::now()))
+        (
+            current.launch_at_login,
+            current.quit_with_command_q,
+            current.theme.resolve(Utc::now()),
+        )
     };
     shared.state.save_settings()?;
     apply_autostart(&app, launch_at_login);
+    update_command_q_item(&app, quits);
     Ok(look)
 }
 
@@ -214,7 +219,7 @@ pub fn run() {
         builder = builder
             .menu(menu::build)
             .on_menu_event(|app, event| match event.id().as_ref() {
-                menu::HIDE => hide_window(app.clone()),
+                menu::HIDE => command_q(app),
                 menu::QUIT => app.exit(0),
                 _ => {}
             });
@@ -241,12 +246,15 @@ pub fn run() {
             });
 
             // Make sure the login item matches the saved preference.
-            let launch_at_login = state
-                .settings
-                .lock()
-                .expect("the settings lock should not be poisoned")
-                .launch_at_login;
+            let (launch_at_login, quits) = {
+                let settings = state
+                    .settings
+                    .lock()
+                    .expect("the settings lock should not be poisoned");
+                (settings.launch_at_login, settings.quit_with_command_q)
+            };
             apply_autostart(app.handle(), launch_at_login);
+            update_command_q_item(app.handle(), quits);
 
             // The end to end test provides a token on the command line, so
             // it does not have to go through the credential store.
@@ -288,6 +296,74 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("the app should start");
+}
+
+/// What Command-Q does.
+///
+/// By default it only puts the window away, because a notifier that stops
+/// watching the review queue because of a stray keypress is no use at all.
+/// The user can ask for it to quit instead, in which case it does.
+fn command_q(app: &AppHandle) {
+    if quits_with_command_q(app) {
+        app.exit(0);
+        return;
+    }
+
+    hide_window(app.clone());
+
+    // Say so once, so the user knows where to go to quit.
+    let Some(shared) = app.try_state::<Shared>() else {
+        return;
+    };
+    if !shared.state.should_warn_about_command_q() {
+        return;
+    }
+    shared.state.remember_command_q_warning();
+
+    let result = app
+        .notification()
+        .builder()
+        .title("Tanuki is still running")
+        .body("You can quit Tanuki from its icon in the menu bar.")
+        .show();
+    if let Err(error) = result {
+        eprintln!("tanuki: could not show the notification: {error}");
+    }
+}
+
+/// Whether the user has asked for Command-Q to quit the app.
+fn quits_with_command_q(app: &AppHandle) -> bool {
+    app.try_state::<Shared>()
+        .map(|shared| {
+            shared
+                .state
+                .settings
+                .lock()
+                .expect("the settings lock should not be poisoned")
+                .quit_with_command_q
+        })
+        .unwrap_or(false)
+}
+
+/// Keeps the Command-Q menu item in step with the setting, so it says what
+/// it is going to do.
+fn update_command_q_item(app: &AppHandle, quits: bool) {
+    let Some(menu) = app.menu() else {
+        return;
+    };
+    let Some(item) = menu
+        .get(menu::HIDE)
+        .and_then(|kind| kind.as_menuitem().cloned())
+    else {
+        return;
+    };
+
+    let text = if quits {
+        "Quit Tanuki"
+    } else {
+        "Hide to the Menu Bar"
+    };
+    let _ = item.set_text(text);
 }
 
 /// Registers or removes the login item so Tanuki starts with the system.

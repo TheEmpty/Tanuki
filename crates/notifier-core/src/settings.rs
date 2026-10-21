@@ -27,6 +27,9 @@ pub struct Settings {
     ///
     /// When this is off, the standard bell is played whatever the theme is.
     pub themed_sounds: bool,
+
+    /// Whether Command-Q quits the app rather than putting the window away.
+    pub quit_with_command_q: bool,
 }
 
 impl Default for Settings {
@@ -42,6 +45,9 @@ impl Default for Settings {
             // The themes are the point of the themes, so they get to pick the
             // chime unless the user says otherwise.
             themed_sounds: true,
+            // Tanuki is meant to stay out of the way, so Command-Q only puts
+            // the window away unless the user asks for it to quit.
+            quit_with_command_q: false,
         }
     }
 }
@@ -73,6 +79,7 @@ mod tests {
         assert!(!settings.notify_lessons);
         assert_eq!(settings.theme, Theme::Automatic);
         assert!(settings.themed_sounds);
+        assert!(!settings.quit_with_command_q);
     }
 
     #[test]
@@ -84,6 +91,7 @@ mod tests {
             notify_lessons: true,
             theme: Theme::Halloween,
             themed_sounds: false,
+            quit_with_command_q: true,
         };
         let encoded = serde_json::to_string(&settings).unwrap();
         let decoded: Settings = serde_json::from_str(&encoded).unwrap();

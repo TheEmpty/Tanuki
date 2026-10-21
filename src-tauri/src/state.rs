@@ -44,6 +44,8 @@ pub struct AppState {
     pub token: Mutex<Option<String>>,
     /// The level watcher, which notices when the user has levelled up.
     pub level: Mutex<LevelWatcher>,
+    /// Whether the user has been told that Command-Q does not quit.
+    pub told_about_command_q: Mutex<bool>,
     /// The last thing the app found out about the review queue.
     ///
     /// The window asks for this when it opens, so it never has to wait for
@@ -60,6 +62,8 @@ pub struct AppState {
 struct Remembered {
     /// The level the user was last seen at.
     level: Option<u32>,
+    /// Whether the user has been told that Command-Q does not quit.
+    told_about_command_q: bool,
 }
 
 impl AppState {
@@ -90,6 +94,7 @@ impl AppState {
                 Some(level) => LevelWatcher::seen_at(level),
                 None => LevelWatcher::new(),
             }),
+            told_about_command_q: Mutex::new(remembered.told_about_command_q),
             status: Mutex::new(Status::default()),
             settings_path,
             state_path,
@@ -161,24 +166,67 @@ impl AppState {
     /// The level is remembered, so a level up that happened while the app
     /// was not running is noticed too.
     pub fn observe_level(&self, level: u32) -> bool {
-        let mut watcher = self
-            .level
-            .lock()
-            .expect("the level lock should not be poisoned");
+        let (went_up, changed) = {
+            let mut watcher = self
+                .level
+                .lock()
+                .expect("the level lock should not be poisoned");
 
-        let before = watcher.seen();
-        let went_up = watcher.observe(level);
+            let before = watcher.seen();
+            let went_up = watcher.observe(level);
+            (went_up, watcher.seen() != before)
+        };
 
-        if watcher.seen() != before {
-            let remembered = Remembered {
-                level: watcher.seen(),
-            };
-            if let Err(error) = write_json(&self.state_path, &remembered) {
-                eprintln!("tanuki: could not remember the level: {error}");
-            }
+        if changed {
+            self.save_remembered();
         }
 
         went_up
+    }
+
+    /// Whether to tell the user that Tanuki is still running.
+    ///
+    /// It is only worth saying once, so the app does not nag.
+    pub fn should_warn_about_command_q(&self) -> bool {
+        !*self
+            .told_about_command_q
+            .lock()
+            .expect("the lock should not be poisoned")
+    }
+
+    /// Remembers that the user has been told Tanuki is still running.
+    pub fn remember_command_q_warning(&self) {
+        {
+            let mut told = self
+                .told_about_command_q
+                .lock()
+                .expect("the lock should not be poisoned");
+            if *told {
+                return;
+            }
+            *told = true;
+        }
+
+        self.save_remembered();
+    }
+
+    /// Writes down what the app remembers between runs.
+    fn save_remembered(&self) {
+        let remembered = Remembered {
+            level: self
+                .level
+                .lock()
+                .expect("the level lock should not be poisoned")
+                .seen(),
+            told_about_command_q: *self
+                .told_about_command_q
+                .lock()
+                .expect("the lock should not be poisoned"),
+        };
+
+        if let Err(error) = write_json(&self.state_path, &remembered) {
+            eprintln!("tanuki: could not remember: {error}");
+        }
     }
 
     /// Saves the settings to disk.

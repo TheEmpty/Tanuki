@@ -26,6 +26,7 @@ const elements = {
   notification: document.getElementById("notification"),
   launchAtLogin: document.getElementById("launch-at-login"),
   notifyLessons: document.getElementById("notify-lessons"),
+  quitWithCommandQ: document.getElementById("quit-with-command-q"),
   theme: document.getElementById("theme"),
   test: document.getElementById("test"),
 };
@@ -55,6 +56,7 @@ function readSettings() {
     notification: elements.notification.checked,
     launch_at_login: elements.launchAtLogin.checked,
     notify_lessons: elements.notifyLessons.checked,
+    quit_with_command_q: elements.quitWithCommandQ.checked,
     theme: elements.theme.value,
     themed_sounds: elements.themedSounds.checked,
   };
@@ -67,6 +69,7 @@ function writeSettings(settings) {
   elements.notification.checked = settings.notification;
   elements.launchAtLogin.checked = settings.launch_at_login;
   elements.notifyLessons.checked = settings.notify_lessons;
+  elements.quitWithCommandQ.checked = settings.quit_with_command_q;
   elements.theme.value = settings.theme;
 
   // A theme from a newer version of the app is not in the list, so fall
@@ -112,6 +115,7 @@ function watchToggles() {
     elements.notification,
     elements.launchAtLogin,
     elements.notifyLessons,
+    elements.quitWithCommandQ,
     elements.theme,
   ]) {
     element.addEventListener("change", async () => {
