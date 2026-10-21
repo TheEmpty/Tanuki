@@ -8,7 +8,7 @@ const { listen } = window.__TAURI__.event;
 // The mascot each look wears.
 const MASCOTS = {
   default: "mascot.svg",
-  halloween: "mascot.svg",
+  halloween: "mascot-halloween.svg",
   christmas: "mascot-christmas.svg",
 };
 

@@ -131,8 +131,11 @@ every launch, which is why reviews that are already waiting are announced when
 Tanuki starts.
 
 A theme is a set of colours and a chime. The colours live in the interface as
-CSS variables, and the chime is rendered from the notes the theme names, so
-adding another season means adding a theme rather than picking over the app.
+CSS variables, the mascot in the settings window changes with them, and the
+chime is rendered from the notes the theme names, so adding another season
+means adding a theme rather than picking over the app. The seasonal looks
+bring their own mascot too: a pumpkin for Halloween, and the tanuki in a
+Santa hat for Christmas.
 
 Each look has its own voice. The plain one is a two-note bell: a bright upper
 note and a lower one. Halloween is a sour, slow fall that creeps up on you
