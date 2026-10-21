@@ -34,11 +34,14 @@ struct Note {
     /// How long the note takes to reach its full volume. A slow attack is
     /// what makes a sound creep up on you.
     attack: f32,
+    /// How quickly the note fades away, on top of the tone's own decay.
+    /// Bigger is faster.
+    decay: f32,
 }
 
 impl Note {
     /// A note that holds the same pitch.
-    const fn steady(frequency: f32, offset: f32, duration: f32, gain: f32) -> Note {
+    const fn steady(frequency: f32, offset: f32, duration: f32, gain: f32, decay: f32) -> Note {
         Note {
             frequency,
             end_frequency: frequency,
@@ -46,6 +49,7 @@ impl Note {
             duration,
             gain,
             attack: 0.004,
+            decay,
         }
     }
 
@@ -65,6 +69,7 @@ impl Note {
             duration,
             gain,
             attack,
+            decay: 1.0,
         }
     }
 }
@@ -94,8 +99,8 @@ const SPOOKY_PARTIALS: [Partial; 4] = [
 
 /// The two notes of the bell: a high "ding" and a low "dong".
 const BELL: &[Note] = &[
-    Note::steady(1_318.51, 0.0, 0.9, 1.0), // E6
-    Note::steady(880.0, 0.16, 1.3, 0.85),  // A5
+    Note::steady(1_318.51, 0.0, 0.9, 1.0, 1.0), // E6
+    Note::steady(880.0, 0.16, 1.3, 0.85, 1.0),  // A5
 ];
 
 /// The Halloween voice: a sour, slow fall, like something moving in the dark.
@@ -110,12 +115,30 @@ const SPOOKY: &[Note] = &[
     Note::falling(698.46, 622.25, 0.55, 1.3, 0.20, 0.50), // F5 to Eb5
 ];
 
-/// The Christmas voice: four notes of sleigh bell, going up.
+/// The partials of a glockenspiel: a struck metal bar.
+///
+/// They are inharmonic and bright, and the bar is a little uneven, which is
+/// what makes a run of them sparkle instead of ring.
+const CHRISTMAS_PARTIALS: [Partial; 5] = [
+    (1.000, 1.00, 1.0),
+    // A slightly detuned twin of the fundamental. The two beat against each
+    // other, which is the shimmer of a sleigh bell.
+    (1.005, 0.45, 1.0),
+    (2.76, 0.42, 1.4),
+    (5.40, 0.20, 1.8),
+    (8.93, 0.08, 2.2),
+];
+
+/// The Christmas voice: a run of sleigh bells going up, and then one that
+/// rings out.
 const JINGLE: &[Note] = &[
-    Note::steady(523.25, 0.00, 0.40, 0.85), // C5
-    Note::steady(659.25, 0.13, 0.40, 0.90), // E5
-    Note::steady(783.99, 0.26, 0.40, 0.95), // G5
-    Note::steady(1046.50, 0.39, 1.05, 1.0), // C6
+    // The run. These fade quickly, so each one is a separate strike rather
+    // than a wash.
+    Note::steady(523.25, 0.00, 0.22, 0.80, 1.9), // C5
+    Note::steady(659.25, 0.11, 0.22, 0.85, 1.9), // E5
+    Note::steady(783.99, 0.22, 0.22, 0.90, 1.9), // G5
+    // The last one rings out.
+    Note::steady(1046.50, 0.33, 1.30, 1.00, 0.55), // C6
 ];
 
 /// A voice: the notes it rings and the tone they are made of.
@@ -143,7 +166,7 @@ fn voice(look: Look) -> Voice {
         },
         Look::Christmas => Voice {
             notes: JINGLE,
-            partials: &BELL_PARTIALS,
+            partials: &CHRISTMAS_PARTIALS,
             duration: 1.8,
         },
     }
@@ -200,7 +223,7 @@ fn render_note(note: &Note, partials: &[Partial], samples: &mut [f32]) {
 
         let mut value = 0.0;
         for (ratio, amplitude, decay) in partials {
-            let envelope = (-time * (6.0 * decay)).exp();
+            let envelope = (-time * (6.0 * decay * note.decay)).exp();
             value += amplitude * envelope * (TAU * ratio * swept).sin();
         }
 
@@ -327,6 +350,55 @@ mod tests {
         let first = energy(0.0, 0.10 * rate);
         let before_second = energy(0.13 * rate, 0.16 * rate);
         assert!(first > before_second, "the second note should start later");
+    }
+
+    #[test]
+    fn the_christmas_run_is_articulated() {
+        let chime = render(Look::Christmas);
+        let rate = SAMPLE_RATE as f32;
+
+        for pair in JINGLE[..3].windows(2) {
+            let (first, second) = (pair[0], pair[1]);
+
+            // The height of the strike.
+            let from = (first.offset * rate) as usize;
+            let to = (first.offset * rate + 0.05 * rate) as usize;
+            let strike = chime.samples[from..to]
+                .iter()
+                .fold(0.0f32, |acc, v| acc.max(v.abs()));
+
+            // The quiet just before the next one.
+            let from = ((second.offset - 0.03) * rate) as usize;
+            let to = (second.offset * rate) as usize;
+            let dip = chime.samples[from..to]
+                .iter()
+                .fold(0.0f32, |acc, v| acc.max(v.abs()));
+
+            assert!(
+                dip < strike * 0.55,
+                "each strike of the run should stand on its own"
+            );
+        }
+    }
+
+    #[test]
+    fn the_christmas_chime_is_brighter_than_the_bell() {
+        // Counting zero crossings is a cheap stand-in for how bright a sound
+        // is: more crossings means more of it is high frequency.
+        fn crossings(samples: &[f32]) -> usize {
+            samples
+                .windows(2)
+                .filter(|pair| (pair[0] < 0.0) != (pair[1] < 0.0))
+                .count()
+        }
+
+        let bell = render(Look::Default);
+        let christmas = render(Look::Christmas);
+
+        assert!(
+            crossings(&christmas.samples) > crossings(&bell.samples),
+            "the Christmas chime should be brighter than the bell"
+        );
     }
 
     #[test]

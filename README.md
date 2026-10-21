@@ -122,6 +122,11 @@ A theme is a set of colours and a chime. The colours live in the interface as
 CSS variables, and the chime is rendered from the notes the theme names, so
 adding another season means adding a theme rather than picking over the app.
 
+Each look has its own voice. The plain one is a two-note bell: a bright upper
+note and a lower one. Halloween is a sour, slow fall that creeps up on you
+over most of a second. Christmas is a run of sleigh bells going up, each one
+a separate strike, and then one that rings out.
+
 There are two things to a theme. The user picks a *theme* — Automatic, Match
 System, Halloween or Christmas — and that is turned into the *look* that is
 actually in use. The automatic theme follows the season, so it is Halloween in
