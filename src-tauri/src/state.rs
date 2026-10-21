@@ -1,6 +1,6 @@
 //! Shared state and the on-disk settings file.
 
-use notifier_core::credential::{CredentialError, CredentialStore};
+use notifier_core::credential::{CredentialError, TokenStore};
 use notifier_core::detect::Detector;
 use notifier_core::settings::Settings;
 use notifier_core::theme::Look;
@@ -35,7 +35,7 @@ pub struct AppState {
     /// The menu bar item that shows the current status.
     pub status_item: MenuItem<Wry>,
     /// Where the API token is kept.
-    pub credentials: Box<dyn CredentialStore>,
+    pub credentials: TokenStore,
     /// The API token, read from the credential store once and kept in memory.
     ///
     /// Reading the credential store can ask the operating system for
@@ -54,7 +54,7 @@ impl AppState {
     /// Creates the state, loading the settings from disk.
     pub fn load(
         config_dir: &Path,
-        credentials: Box<dyn CredentialStore>,
+        credentials: TokenStore,
         status_item: MenuItem<Wry>,
     ) -> Result<Self, SettingsError> {
         let settings_path = config_dir.join("settings.json");

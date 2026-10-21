@@ -14,7 +14,7 @@ pub mod theme;
 
 pub use api::{ApiError, Summary, SummaryData, WanikaniClient};
 pub use chime::Chime;
-pub use credential::{CredentialError, CredentialStore};
+pub use credential::{CredentialError, TokenStore};
 pub use detect::{Detector, Event};
 pub use settings::Settings;
 pub use theme::Theme;

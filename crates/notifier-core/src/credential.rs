@@ -1,18 +1,26 @@
 //! Storage for the WaniKani personal access token.
 //!
-//! The token is a secret, so it is kept in the operating system's credential
-//! store: the Keychain on macOS and the Credential Manager on Windows. On
-//! platforms without one, a file with restricted permissions is used instead.
+//! The token is kept in the application's own configuration directory, in a
+//! file only its owner can read.
+//!
+//! The system's credential store would be the more usual home for a secret,
+//! but on macOS the keychain ties an item to the application that created
+//! it. As soon as the application is rebuilt or upgraded, that tie no longer
+//! holds and macOS asks the user for their password before the token can be
+//! read again — and if the prompt is dismissed rather than always allowed,
+//! the token has to be typed in from scratch. A read-only API token does not
+//! need that ceremony, so it lives in a file next to the rest of the
+//! settings instead.
 
 use std::path::{Path, PathBuf};
 
-/// A place the API token can be kept.
+/// The name of the file the token is kept in, within the configuration
+/// directory.
+pub const TOKEN_FILE: &str = "token";
+
+/// Something went wrong with the stored token.
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialError {
-    /// The credential store could not be reached.
-    #[error("could not access the credential store: {0}")]
-    Store(String),
-
     /// There is no token stored.
     #[error("no API token has been saved")]
     Missing,
@@ -22,91 +30,34 @@ pub enum CredentialError {
     Io(#[from] std::io::Error),
 }
 
-/// The service name the token is stored under.
-const SERVICE: &str = "tanuki";
-
-/// The account name the token is stored under.
-const ACCOUNT: &str = "wanikani-api-token";
-
-/// A store for the API token.
+/// The store for the API token.
 ///
-/// Implementations are shared between the polling task and the window, so
-/// they have to be safe to use from several threads.
-pub trait CredentialStore: Send + Sync {
-    /// Returns the stored token, or [`CredentialError::Missing`] if there is none.
-    fn token(&self) -> Result<String, CredentialError>;
-
-    /// Stores the token, replacing any previous one.
-    fn set_token(&self, token: &str) -> Result<(), CredentialError>;
-
-    /// Removes the stored token, if any.
-    fn clear_token(&self) -> Result<(), CredentialError>;
-}
-
-/// The store used on macOS and Windows, backed by the OS credential store.
-#[derive(Debug, Clone, Default)]
-pub struct SystemCredentialStore;
-
-impl SystemCredentialStore {
-    /// Creates the store.
-    pub fn new() -> Self {
-        Self
-    }
-}
-#[cfg(any(target_os = "macos", target_os = "windows"))]
-impl CredentialStore for SystemCredentialStore {
-    fn token(&self) -> Result<String, CredentialError> {
-        let entry = keyring::Entry::new(SERVICE, ACCOUNT)
-            .map_err(|err| CredentialError::Store(err.to_string()))?;
-        match entry.get_password() {
-            Ok(token) => Ok(token),
-            Err(keyring::Error::NoEntry) => Err(CredentialError::Missing),
-            Err(err) => Err(CredentialError::Store(err.to_string())),
-        }
-    }
-
-    fn set_token(&self, token: &str) -> Result<(), CredentialError> {
-        let entry = keyring::Entry::new(SERVICE, ACCOUNT)
-            .map_err(|err| CredentialError::Store(err.to_string()))?;
-        entry
-            .set_password(token)
-            .map_err(|err| CredentialError::Store(err.to_string()))
-    }
-
-    fn clear_token(&self) -> Result<(), CredentialError> {
-        let entry = keyring::Entry::new(SERVICE, ACCOUNT)
-            .map_err(|err| CredentialError::Store(err.to_string()))?;
-        match entry.delete_credential() {
-            Ok(()) => Ok(()),
-            Err(keyring::Error::NoEntry) => Ok(()),
-            Err(err) => Err(CredentialError::Store(err.to_string())),
-        }
-    }
-}
-
-/// A fallback store that keeps the token in a file.
-///
-/// Used on platforms without an OS credential store. The file is created with
-/// permissions only its owner can read.
+/// It is shared between the polling task and the window, so it has to be
+/// safe to use from several threads.
 #[derive(Debug, Clone)]
-pub struct FileCredentialStore {
+pub struct TokenStore {
     path: PathBuf,
 }
 
-impl FileCredentialStore {
-    /// Creates a store backed by the given file.
+impl TokenStore {
+    /// Creates a store that keeps the token in the given file.
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self { path: path.into() }
+    }
+
+    /// Creates a store that keeps the token in the given directory.
+    pub fn in_dir(dir: impl AsRef<Path>) -> Self {
+        Self::new(dir.as_ref().join(TOKEN_FILE))
     }
 
     /// The file the token is kept in.
     pub fn path(&self) -> &Path {
         &self.path
     }
-}
 
-impl CredentialStore for FileCredentialStore {
-    fn token(&self) -> Result<String, CredentialError> {
+    /// Returns the stored token, or [`CredentialError::Missing`] if there is
+    /// none.
+    pub fn token(&self) -> Result<String, CredentialError> {
         match std::fs::read_to_string(&self.path) {
             Ok(contents) => Ok(contents.trim().to_owned()),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Err(CredentialError::Missing),
@@ -114,16 +65,17 @@ impl CredentialStore for FileCredentialStore {
         }
     }
 
-    fn set_token(&self, token: &str) -> Result<(), CredentialError> {
+    /// Stores the token, replacing any previous one.
+    pub fn set_token(&self, token: &str) -> Result<(), CredentialError> {
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::write(&self.path, token)?;
-        restrict_permissions(&self.path)?;
+        write_private(&self.path, token)?;
         Ok(())
     }
 
-    fn clear_token(&self) -> Result<(), CredentialError> {
+    /// Removes the stored token, if any.
+    pub fn clear_token(&self) -> Result<(), CredentialError> {
         match std::fs::remove_file(&self.path) {
             Ok(()) => Ok(()),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -132,40 +84,50 @@ impl CredentialStore for FileCredentialStore {
     }
 }
 
-/// Makes a file readable and writable by its owner only.
+/// Writes a file that only its owner can read.
+///
+/// The permissions are set as the file is created, so the token is never on
+/// disk in a state where other users can read it.
 #[cfg(unix)]
-fn restrict_permissions(path: &Path) -> Result<(), CredentialError> {
-    use std::os::unix::fs::PermissionsExt;
+fn write_private(path: &Path, contents: &str) -> Result<(), CredentialError> {
+    use std::io::Write;
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .open(path)?;
+
+    file.write_all(contents.as_bytes())?;
+
+    // The mode above only applies to a file that did not exist yet.
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
     Ok(())
 }
 
-/// Makes a file readable and writable by its owner only.
+/// Writes a file that only its owner can read.
 #[cfg(not(unix))]
-fn restrict_permissions(_path: &Path) -> Result<(), CredentialError> {
+fn write_private(path: &Path, contents: &str) -> Result<(), CredentialError> {
+    std::fs::write(path, contents)?;
     Ok(())
 }
 
-/// Picks the best credential store for the current platform.
-#[cfg(any(target_os = "macos", target_os = "windows"))]
-pub fn default_store(_fallback_dir: &Path) -> Box<dyn CredentialStore> {
-    Box::new(SystemCredentialStore::new())
-}
-
-/// Picks the best credential store for the current platform.
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub fn default_store(fallback_dir: &Path) -> Box<dyn CredentialStore> {
-    Box::new(FileCredentialStore::new(fallback_dir.join("token")))
-}
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn the_file_store_round_trips_a_token() {
-        let dir = std::env::temp_dir().join(format!("tanuki-test-{}", std::process::id()));
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("tanuki-test-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        let store = FileCredentialStore::new(dir.join("token"));
+        dir
+    }
+
+    #[test]
+    fn the_store_round_trips_a_token() {
+        let dir = scratch("round-trip");
+        let store = TokenStore::in_dir(&dir);
 
         assert!(matches!(store.token(), Err(CredentialError::Missing)));
 
@@ -180,9 +142,36 @@ mod tests {
 
     #[test]
     fn clearing_a_missing_token_is_not_an_error() {
-        let dir = std::env::temp_dir().join(format!("tanuki-test-empty-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        let store = FileCredentialStore::new(dir.join("token"));
+        let dir = scratch("empty");
+        let store = TokenStore::in_dir(&dir);
         assert!(store.clear_token().is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_token_is_kept_in_a_file_of_its_own() {
+        let dir = scratch("file");
+        let store = TokenStore::in_dir(&dir);
+        assert_eq!(store.path(), dir.join(TOKEN_FILE));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_token_file_is_not_readable_by_others() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = scratch("perms");
+        let store = TokenStore::in_dir(&dir);
+        store.set_token("secret-token").unwrap();
+
+        let mode = std::fs::metadata(store.path())
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o077, 0, "the token must not be world readable");
+        assert_eq!(mode & 0o600, 0o600, "the owner must be able to read it");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

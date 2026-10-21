@@ -16,8 +16,9 @@ nothing but your review queue.
 - Plays a short bell chime and posts a system notification when that happens.
 - Shows the number of waiting reviews in the tray menu.
 - Can start automatically when you log in.
-- Keeps your access token in your system's credential store (Keychain on
-  macOS, Credential Manager on Windows) rather than in a file.
+- Keeps your access token in the app's own configuration directory, in a file
+  only you can read. It never leaves your machine, and you only have to paste
+  it once.
 - Has themes, which set the colours and the sound together. *Automatic* follows
   the season — Halloween in October, Christmas in December — and the system's
   light or dark appearance for the rest of the year. *Match System* always
@@ -84,7 +85,7 @@ crates/notifier-core/   pure Rust, no user interface
   api.rs                the WaniKani API client
   detect.rs             decides when reviews count as "new"
   chime.rs              synthesises the bell
-  credential.rs         the token store
+  credential.rs         where the token is kept
   settings.rs           the user's preferences
   theme.rs              the themes the user can pick
 
@@ -96,6 +97,14 @@ src-tauri/              the Tauri application
 
 ui/                     the settings window (no build step)
 ```
+
+The API token is kept in the app's own configuration directory, in a file only
+its owner can read, rather than in the system's credential store. On macOS a
+keychain item is tied to the application that created it, so as soon as the
+app is rebuilt or upgraded macOS asks the user for their password before the
+token can be read again — and if that prompt is dismissed rather than always
+allowed, the token has to be typed in again from scratch. A read-only API token
+does not need that ceremony, and the file survives every upgrade untouched.
 
 The app polls `GET /v2/assignments?immediately_available_for_review` for the
 authoritative count of waiting reviews, and `GET /v2/summary` to learn when the
@@ -137,8 +146,8 @@ Two environment variables help when you are working on the app itself:
 
 - `TANUKI_API_URL` points the client at a different API root, for example
   `http://127.0.0.1:8731/v2`.
-- `TANUKI_TEST_TOKEN` puts a token into the credential store at startup, so
-  you do not have to click through the settings window.
+- `TANUKI_TEST_TOKEN` puts a token into the store at startup, so you do not
+  have to click through the settings window.
 
 Neither is used in normal operation.
 
