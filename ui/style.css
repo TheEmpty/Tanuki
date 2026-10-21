@@ -1,7 +1,7 @@
 /*
- * The colours of the app live in these variables. A theme is a set of them:
- * the automatic theme follows the system's light or dark appearance, and
- * Launch Purple is the theme Tanuki launched with.
+ * The colours of the app live in these variables. A look is a set of them:
+ * the plain look follows the system's light or dark appearance, and the
+ * seasonal looks bring their own colours.
  */
 :root {
   color-scheme: light dark;
@@ -9,12 +9,14 @@
   --bg: #f3f1ec;
   --card: #ffffff;
   --card-edge: #e0dbd0;
+  --card-edge-hover: #cec8ba;
   --ink: #241f3d;
   --ink-dim: #6b6484;
-  --teal: #0f7d78;
-  --on-teal: #ffffff;
-  --coral: #d11a4a;
-  --gold: #8a6300;
+  --accent: #0f7d78;
+  --accent-hover: #0b6b67;
+  --on-accent: #ffffff;
+  --danger: #d11a4a;
+  --heading: #8a6300;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,28 +24,49 @@
     --bg: #1b1a20;
     --card: #25242c;
     --card-edge: #3a3843;
+    --card-edge-hover: #4b4857;
     --ink: #f2efe8;
     --ink-dim: #a9a3b5;
-    --teal: #3ec6c0;
-    --on-teal: #14323a;
-    --coral: #f2426b;
-    --gold: #f7c948;
+    --accent: #3ec6c0;
+    --accent-hover: #4ad6cf;
+    --on-accent: #14323a;
+    --danger: #f2426b;
+    --heading: #f7c948;
   }
 }
 
-/* Launch Purple is the theme Tanuki launched with. It is always dark. */
-[data-theme="launch-purple"] {
+/* Halloween. */
+[data-look="halloween"] {
   color-scheme: dark;
 
-  --bg: #2e2a5e;
-  --card: #3a3470;
-  --card-edge: #4a4386;
+  --bg: #15121f;
+  --card: #201c2e;
+  --card-edge: #39324c;
+  --card-edge-hover: #4b4265;
+  --ink: #f3eee3;
+  --ink-dim: #a49ab8;
+  --accent: #ff8f2e;
+  --accent-hover: #ffa24f;
+  --on-accent: #2b1607;
+  --danger: #ff5470;
+  --heading: #a3cf5a;
+}
+
+/* Christmas. */
+[data-look="christmas"] {
+  color-scheme: dark;
+
+  --bg: #12181a;
+  --card: #1a2427;
+  --card-edge: #2f3f43;
+  --card-edge-hover: #3e5257;
   --ink: #f4f1e8;
-  --ink-dim: #b9b3d6;
-  --teal: #3ec6c0;
-  --on-teal: #14323a;
-  --coral: #f2426b;
-  --gold: #f7c948;
+  --ink-dim: #a5b3b7;
+  --accent: #d2373f;
+  --accent-hover: #e04750;
+  --on-accent: #ffffff;
+  --danger: #ff7a85;
+  --heading: #f2c14e;
 }
 
 * {
@@ -103,7 +126,7 @@ h1 {
 h2 {
   font-size: 0.9375rem;
   margin: 0 0 0.5rem;
-  color: var(--gold);
+  color: var(--heading);
   font-weight: 600;
 }
 
@@ -133,13 +156,13 @@ h2 {
 }
 
 .status-dot.ready {
-  background: var(--teal);
-  box-shadow: 0 0 0 3px rgb(62 198 192 / 0.2);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .status-dot.error {
-  background: var(--coral);
-  box-shadow: 0 0 0 3px rgb(242 66 107 / 0.2);
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
 .card {
@@ -186,7 +209,7 @@ input[type="password"] {
 }
 
 input[type="password"]:focus {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
 
@@ -207,7 +230,7 @@ select {
 }
 
 select:focus {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
 
@@ -224,17 +247,17 @@ button {
 }
 
 button:hover {
-  background: #57509c;
+  background: var(--card-edge-hover);
 }
 
 button.primary {
-  background: var(--teal);
-  color: var(--on-teal);
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
 }
 
 button.primary:hover {
-  background: #4ad6cf;
+  background: var(--accent-hover);
 }
 
 button:disabled {
@@ -243,7 +266,7 @@ button:disabled {
 }
 
 a {
-  color: var(--teal);
+  color: var(--accent);
 }
 
 .toggle {
@@ -260,7 +283,7 @@ a {
 
 .toggle input {
   margin: 0.25rem 0 0;
-  accent-color: var(--teal);
+  accent-color: var(--accent);
   flex: none;
   width: 1rem;
   height: 1rem;
@@ -308,11 +331,11 @@ a {
 }
 
 .message {
-  color: var(--gold);
+  color: var(--heading);
   font-size: 0.8125rem;
   margin: 0.5rem 0 0;
 }
 
 .message.error {
-  color: var(--coral);
+  color: var(--danger);
 }

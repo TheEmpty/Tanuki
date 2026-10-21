@@ -5,6 +5,7 @@ use crate::state::{AppState, Status};
 use chrono::Utc;
 use notifier_core::api::WanikaniClient;
 use notifier_core::detect::{next_poll_delay, Event};
+use notifier_core::theme::Look;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Listener};
@@ -53,6 +54,7 @@ async fn check(
                 state,
                 &Status {
                     configured: false,
+                    look: current_look(state),
                     ..Status::default()
                 },
             );
@@ -66,6 +68,7 @@ async fn check(
                     configured: true,
                     error: Some(error.to_string()),
                     last_checked: Some(now_iso()),
+                    look: current_look(state),
                     ..Status::default()
                 },
             );
@@ -89,6 +92,7 @@ async fn check(
                     configured: true,
                     error: Some(error.to_string()),
                     last_checked: Some(now_iso()),
+                    look: current_look(state),
                     ..Status::default()
                 },
             );
@@ -132,6 +136,7 @@ async fn check(
             next_review_at: next_unlock.map(|moment| moment.to_rfc3339()),
             last_checked: Some(now_iso()),
             error: None,
+            look: current_look(state),
         },
     );
 
@@ -147,7 +152,7 @@ fn announce(app: &AppHandle, state: &Arc<AppState>, audio: &Arc<ChimePlayer>, co
         .clone();
 
     if settings.sound {
-        audio.play(settings.theme);
+        audio.play(settings.theme.resolve(Utc::now()));
     }
 
     if settings.notification {
@@ -181,6 +186,16 @@ fn report(app: &AppHandle, state: &Arc<AppState>, status: &Status) {
         count => format!("{count} reviews waiting"),
     };
     crate::tray::set_status(&state.status_item, &text);
+}
+
+/// The look that is in use right now.
+fn current_look(state: &Arc<AppState>) -> Look {
+    let theme = state
+        .settings
+        .lock()
+        .expect("the settings lock should not be poisoned")
+        .theme;
+    theme.resolve(Utc::now())
 }
 
 /// The current time as an ISO 8601 string.

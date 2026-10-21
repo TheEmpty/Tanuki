@@ -5,7 +5,15 @@
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
+// The mascot each look wears.
+const MASCOTS = {
+  default: "mascot.svg",
+  halloween: "mascot.svg",
+  christmas: "mascot-christmas.svg",
+};
+
 const elements = {
+  mascot: document.getElementById("mascot"),
   status: document.getElementById("status"),
   statusDot: document.getElementById("status-dot"),
   statusText: document.getElementById("status-text"),
@@ -27,9 +35,16 @@ function message(text, isError = false) {
   elements.tokenState.classList.toggle("error", isError);
 }
 
-/** Applies a theme to the window. */
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
+/**
+ * Puts a look on the window: its colours and the mascot it wears.
+ */
+function applyLook(look) {
+  document.documentElement.setAttribute("data-look", look);
+
+  const mascot = MASCOTS[look] || MASCOTS.default;
+  if (elements.mascot.getAttribute("src") !== mascot) {
+    elements.mascot.setAttribute("src", mascot);
+  }
 }
 
 /** Reads the current value of every setting. */
@@ -74,7 +89,7 @@ async function load() {
 
   const current = await invoke("get_settings");
   writeSettings(current.settings);
-  applyTheme(current.settings.theme);
+  applyLook(current.look);
 
   if (current.configured) {
     elements.token.placeholder = "••••••••  (a token is saved)";
@@ -96,14 +111,11 @@ function watchToggles() {
     elements.theme,
   ]) {
     element.addEventListener("change", async () => {
-      // A new theme is put on straight away, so the window changes colour
-      // as soon as it is picked.
-      if (element === elements.theme) {
-        applyTheme(elements.theme.value);
-      }
-
       try {
-        await invoke("save_settings", { settings: readSettings() });
+        // The app answers with the look that is now in use, so the window
+        // changes colour as soon as the setting is picked.
+        const look = await invoke("save_settings", { settings: readSettings() });
+        applyLook(look);
       } catch (error) {
         message(String(error), true);
       }
@@ -188,7 +200,12 @@ elements.test.addEventListener("click", () => {
   invoke("test_notification");
 });
 
-listen("status", (event) => setStatus(event.payload));
+listen("status", (event) => {
+  setStatus(event.payload);
+  // The look comes with every status, so the window keeps up with the
+  // season without having to be reopened.
+  applyLook(event.payload.look);
+});
 
 // The settings are loaded before the listeners are attached, so that filling
 // the toggles in does not look like the user changing them.

@@ -3,6 +3,7 @@
 use notifier_core::credential::{CredentialError, CredentialStore};
 use notifier_core::detect::Detector;
 use notifier_core::settings::Settings;
+use notifier_core::theme::Look;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::menu::MenuItem;
@@ -21,6 +22,8 @@ pub struct Status {
     pub last_checked: Option<String>,
     /// The last error, if a check failed.
     pub error: Option<String>,
+    /// The look that is in use, so the window keeps up with the season.
+    pub look: Look,
 }
 
 /// Everything the app keeps around while it runs.

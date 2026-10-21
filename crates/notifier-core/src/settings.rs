@@ -58,7 +58,7 @@ mod tests {
             notification: true,
             launch_at_login: true,
             notify_lessons: true,
-            theme: Theme::LaunchPurple,
+            theme: Theme::Halloween,
         };
         let encoded = serde_json::to_string(&settings).unwrap();
         let decoded: Settings = serde_json::from_str(&encoded).unwrap();

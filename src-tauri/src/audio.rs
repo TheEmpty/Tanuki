@@ -5,7 +5,7 @@
 //! output stream and is told to play by sending it a message.
 
 use notifier_core::chime::{self, Chime};
-use notifier_core::theme::Theme;
+use notifier_core::theme::Look;
 use rodio::buffer::SamplesBuffer;
 use rodio::{ChannelCount, Player, SampleRate};
 use std::sync::mpsc::{self, SyncSender, TrySendError};
@@ -13,7 +13,7 @@ use std::sync::mpsc::{self, SyncSender, TrySendError};
 /// Plays the chime on the default audio device.
 #[derive(Debug)]
 pub struct ChimePlayer {
-    sender: SyncSender<Theme>,
+    sender: SyncSender<Look>,
 }
 
 impl ChimePlayer {
@@ -30,12 +30,12 @@ impl ChimePlayer {
         Self { sender }
     }
 
-    /// Plays the chime of a theme.
+    /// Plays the chime of a look.
     ///
     /// Does nothing if the sound device is unavailable.
-    pub fn play(&self, theme: Theme) {
+    pub fn play(&self, look: Look) {
         // A pending chime is enough; a second one would just overlap.
-        match self.sender.try_send(theme) {
+        match self.sender.try_send(look) {
             Ok(()) => {}
             Err(TrySendError::Full(_)) => {}
             Err(TrySendError::Disconnected(_)) => {}
@@ -44,10 +44,10 @@ impl ChimePlayer {
 }
 
 /// Owns the output stream and plays the chime on request.
-fn audio_thread(receiver: mpsc::Receiver<Theme>) {
-    // The chime of the theme that was last asked for, so that a theme that
+fn audio_thread(receiver: mpsc::Receiver<Look>) {
+    // The chime of the look that was last asked for, so that a look that
     // rings the same way twice is only rendered once.
-    let mut current: Option<(Theme, SamplesBuffer)> = None;
+    let mut current: Option<(Look, SamplesBuffer)> = None;
 
     // The sink owns the stream that writes to the audio device, so it has to
     // be kept alive for as long as the player. Dropping it ends playback,
@@ -55,9 +55,9 @@ fn audio_thread(receiver: mpsc::Receiver<Theme>) {
     let mut _sink: Option<rodio::MixerDeviceSink> = None;
     let mut player: Option<Player> = None;
 
-    while let Ok(theme) = receiver.recv() {
-        if current.as_ref().map(|(played, _)| *played) != Some(theme) {
-            current = Some((theme, to_source(&chime::render(theme))));
+    while let Ok(look) = receiver.recv() {
+        if current.as_ref().map(|(played, _)| *played) != Some(look) {
+            current = Some((look, to_source(&chime::render(look))));
         }
 
         let source = current

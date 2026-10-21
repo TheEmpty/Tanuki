@@ -6,6 +6,8 @@ mod state;
 mod tray;
 
 use audio::ChimePlayer;
+use chrono::Utc;
+use notifier_core::theme::{Look, Theme};
 use state::{AppState, SettingsError, Status};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -30,6 +32,8 @@ struct WindowSettings {
     pub configured: bool,
     /// The user's settings.
     pub settings: notifier_core::Settings,
+    /// The look that is in use right now.
+    pub look: Look,
 }
 
 /// A theme the user can pick, as it is shown in the dropdown.
@@ -44,7 +48,7 @@ struct ThemeOption {
 /// Returns every theme the user can pick.
 #[tauri::command]
 fn get_themes() -> Vec<ThemeOption> {
-    notifier_core::Theme::ALL
+    Theme::ALL
         .iter()
         .map(|theme| ThemeOption {
             id: theme.id().to_owned(),
@@ -70,6 +74,13 @@ fn get_settings(shared: State<'_, Shared>) -> WindowSettings {
             .map(|token| token.is_some())
             .unwrap_or(false),
         settings,
+        look: shared
+            .state
+            .settings
+            .lock()
+            .expect("the settings lock should not be poisoned")
+            .theme
+            .resolve(Utc::now()),
     }
 }
 
@@ -82,25 +93,25 @@ fn get_status(shared: State<'_, Shared>) -> Status {
     shared.state.status()
 }
 
-/// Saves the user's settings.
+/// Saves the user's settings and returns the look that is now in use.
 #[tauri::command]
 fn save_settings(
     app: AppHandle,
     shared: State<'_, Shared>,
     settings: notifier_core::Settings,
-) -> Result<(), SettingsError> {
-    let launch_at_login = {
+) -> Result<Look, SettingsError> {
+    let (launch_at_login, look) = {
         let mut current = shared
             .state
             .settings
             .lock()
             .expect("the settings lock should not be poisoned");
         *current = settings;
-        current.launch_at_login
+        (current.launch_at_login, current.theme.resolve(Utc::now()))
     };
     shared.state.save_settings()?;
     apply_autostart(&app, launch_at_login);
-    Ok(())
+    Ok(look)
 }
 
 /// Stores the API token.
@@ -135,14 +146,15 @@ fn clear_token(app: AppHandle, shared: State<'_, Shared>) -> Result<(), String> 
 /// Plays the chime and shows a notification, so the user can check them.
 #[tauri::command]
 fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
-    let theme = shared
+    let look = shared
         .state
         .settings
         .lock()
         .expect("the settings lock should not be poisoned")
-        .theme;
+        .theme
+        .resolve(Utc::now());
 
-    shared.audio.play(theme);
+    shared.audio.play(look);
 
     let result = app
         .notification()
