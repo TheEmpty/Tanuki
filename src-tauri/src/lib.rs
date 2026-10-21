@@ -5,6 +5,9 @@ mod poller;
 mod state;
 mod tray;
 
+#[cfg(target_os = "macos")]
+mod menu;
+
 use audio::ChimePlayer;
 use chrono::Utc;
 use notifier_core::theme::{Look, Theme};
@@ -193,7 +196,7 @@ fn hide_window(app: AppHandle) {
 
 /// Starts Tanuki.
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -202,7 +205,22 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
-        ))
+        ));
+
+    // The stock macOS menu quits the app on Command-Q. Tanuki brings its
+    // own menu, where Command-Q puts the window away instead.
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder
+            .menu(menu::build)
+            .on_menu_event(|app, event| match event.id().as_ref() {
+                menu::HIDE => hide_window(app.clone()),
+                menu::QUIT => app.exit(0),
+                _ => {}
+            });
+    }
+
+    builder
         .setup(|app| {
             // The settings live in the platform's config directory.
             let config_dir = app.path().app_config_dir()?;
