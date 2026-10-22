@@ -1,4 +1,4 @@
-# AGENT.md
+# AGENTS.md
 
 Notes for anyone — human or otherwise — working on Tanuki.
 

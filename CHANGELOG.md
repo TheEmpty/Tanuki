@@ -8,6 +8,12 @@ Tanuki is an unofficial third-party WaniKani review notifier for macOS and
 Windows. It lives in the menu bar, watches your review queue, and tells you
 with a chime and a notification when reviews are ready.
 
+> **Tanuki is written and maintained entirely by an AI coding agent.** There
+> is no hand-written code in it. The Rust, the interface, the tests, the CI
+> and these releases were all produced by an AI working from the notes in
+> `AGENTS.md`; a human decides what should be built and says when it is
+> finished. Bug fixes and documentation are done the same way.
+
 - Watches the WaniKani API for reviews that are ready to be done, and plays a
   short bell and posts a system notification when they are.
 - Announces new lessons as well, if you want it to.

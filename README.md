@@ -10,6 +10,18 @@ Tanuki is not affiliated with, endorsed by, or made by WaniKani. It is a
 third-party app that uses only your own personal access token, and it reads
 nothing but your review queue.
 
+## Written by an AI
+
+Tanuki is written and maintained entirely by an AI coding agent. There is no
+hand-written code in it: the Rust, the interface, the tests, the CI and the
+releases are all produced by an AI working from the notes in
+[AGENTS.md](AGENTS.md). A human decides what should be built and says when it
+is finished, but the building is done by the agent — including the bug fixes
+and the documentation.
+
+If you find a problem, that is the sort of thing an agent can fix, and it
+will be fixed the same way.
+
 ## What it does
 
 - Watches the WaniKani API for reviews that are ready to be done.
