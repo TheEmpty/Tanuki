@@ -28,6 +28,7 @@ const elements = {
   launchAtLogin: document.getElementById("launch-at-login"),
   notifyLessons: document.getElementById("notify-lessons"),
   quitWithCommandQ: document.getElementById("quit-with-command-q"),
+  quitWithCommandQRow: document.getElementById("quit-with-command-q-row"),
   theme: document.getElementById("theme"),
   test: document.getElementById("test"),
 };
@@ -99,6 +100,10 @@ async function load() {
   const current = await invoke("get_settings");
   writeSettings(current.settings);
   applyLook(current.look);
+
+  // Only macOS has a Command-Q, so anywhere else the setting that asks for
+  // it would be promising something that cannot happen.
+  elements.quitWithCommandQRow.hidden = !current.has_command_q;
 
   if (current.configured) {
     elements.token.placeholder = "••••••••  (a token is saved)";

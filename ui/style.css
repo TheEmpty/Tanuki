@@ -277,6 +277,11 @@ a {
   cursor: pointer;
 }
 
+/* The setting is only shown on the platforms that have a Command-Q. */
+.toggle[hidden] {
+  display: none;
+}
+
 .toggle + .toggle {
   border-top: 1px solid var(--card-edge);
 }

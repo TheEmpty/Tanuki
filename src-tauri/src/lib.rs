@@ -37,6 +37,10 @@ struct WindowSettings {
     pub settings: notifier_core::Settings,
     /// The look that is in use right now.
     pub look: Look,
+    /// Whether this platform has a Command-Q.
+    ///
+    /// Only macOS does, so the window hides the setting that asks for it.
+    pub has_command_q: bool,
 }
 
 /// A theme the user can pick, as it is shown in the dropdown.
@@ -84,6 +88,7 @@ fn get_settings(shared: State<'_, Shared>) -> WindowSettings {
             .expect("the settings lock should not be poisoned")
             .theme
             .resolve(Utc::now()),
+        has_command_q: cfg!(target_os = "macos"),
     }
 }
 
@@ -148,6 +153,19 @@ fn clear_token(app: AppHandle, shared: State<'_, Shared>) -> Result<(), String> 
     Ok(())
 }
 
+/// Shows the notification that the test button shows.
+fn show_test_notification(app: AppHandle) {
+    let result = app
+        .notification()
+        .builder()
+        .title("Tanuki")
+        .body("This is what a review notification looks like.")
+        .show();
+    if let Err(error) = result {
+        eprintln!("tanuki: could not show the test notification: {error}");
+    }
+}
+
 /// Plays the chime and shows a notification, so the user can check them.
 #[tauri::command]
 fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
@@ -165,24 +183,23 @@ fn test_notification(app: AppHandle, shared: State<'_, Shared>) {
     // macOS does not put a banner up for a notification from the app that is
     // in front; it goes straight into Notification Center. The window is put
     // away first so that the test looks like the real thing, which is a
-    // banner in the corner of the screen.
-    let handle = app.clone();
-    std::thread::spawn(move || {
-        hide_window(handle.clone());
+    // banner in the corner of the screen. Windows shows the notification
+    // either way, so there the window stays where it is.
+    #[cfg(target_os = "macos")]
+    {
+        let handle = app.clone();
+        std::thread::spawn(move || {
+            hide_window(handle.clone());
 
-        // Give macOS a moment to notice that the app is no longer in front.
-        std::thread::sleep(std::time::Duration::from_millis(400));
+            // Give macOS a moment to notice that the app is no longer in front.
+            std::thread::sleep(std::time::Duration::from_millis(400));
 
-        let result = handle
-            .notification()
-            .builder()
-            .title("Tanuki")
-            .body("This is what a review notification looks like.")
-            .show();
-        if let Err(error) = result {
-            eprintln!("tanuki: could not show the test notification: {error}");
-        }
-    });
+            show_test_notification(handle);
+        });
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    show_test_notification(app);
 }
 
 /// Opens the page where WaniKani personal access tokens live.

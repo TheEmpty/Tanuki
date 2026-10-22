@@ -72,6 +72,13 @@ typing it in.
 
 ## Traps
 
+### Windows opens a terminal for the app
+
+A program built for Windows is given a console unless it says that it is a
+windowed program, and a console means a terminal window beside the app.
+`main.rs` says so with `windows_subsystem`, which is why there is only the
+app. A debug build keeps the terminal, because that is where the log goes.
+
 ### The app has only ever been run on a Mac
 
 **The Windows build was broken for the whole of the first version.** The
@@ -143,6 +150,11 @@ If the app is frontmost, a notification goes straight into Notification
 Center and no banner appears. This is why the test button puts the window
 away first: otherwise the test can only be seen by opening Notification
 Center, which is not much of a test.
+
+Only macOS does this. Windows puts the notification up whether the app is in
+front or not, so the test button leaves the window where it is there. The
+window going away was reported by a Windows user as the window vanishing for
+no reason.
 
 The same applies to any real notification — when Tanuki is in the menu bar
 it is not frontmost, so those do banner.
