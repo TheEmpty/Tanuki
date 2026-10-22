@@ -211,6 +211,32 @@ fn hide_window(app: AppHandle) {
     }
 }
 
+/// Creates the settings window.
+///
+/// The window is described in `tauri.conf.json`, but it is built here rather
+/// than by Tauri, because Tauri can only be told to send cache headers for
+/// a window it builds itself. The configuration says `create: false`, so
+/// Tauri leaves the window alone and this builds it from that same
+/// configuration.
+fn create_main_window(app: &tauri::App) -> tauri::Result<()> {
+    let Some(config) = app.config().app.windows.iter().find(|w| w.label == "main") else {
+        return Ok(());
+    };
+
+    tauri::WebviewWindowBuilder::from_config(app.handle(), config)?
+        .on_web_resource_request(|_request, response| {
+            // The interface must never be cached. A user who updates the app
+            // should not be shown the settings window they had before.
+            response.headers_mut().insert(
+                tauri::http::header::CACHE_CONTROL,
+                tauri::http::HeaderValue::from_static("no-store"),
+            );
+        })
+        .build()?;
+
+    Ok(())
+}
+
 /// Starts Tanuki.
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -242,6 +268,10 @@ pub fn run() {
             // The settings live in the platform's config directory.
             let config_dir = app.path().app_config_dir()?;
             std::fs::create_dir_all(&config_dir)?;
+
+            // The window comes first, because everything else may want to
+            // show it.
+            create_main_window(app)?;
 
             // Build the menu bar icon first, so its status item can be part
             // of the shared state.
