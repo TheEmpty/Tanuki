@@ -1,11 +1,14 @@
 /*
- * The colours of the app live in these variables. A look is a set of them:
- * the plain look follows the system's light or dark appearance, and the
- * seasonal looks bring their own colours.
+ * The colours of the app live in these variables, and a look is a set of
+ * them. Every look is a [data-look] block, including the default one, which
+ * is the only look that follows the system's light or dark appearance.
  */
 :root {
   color-scheme: light dark;
+}
 
+/* Default. The one look that follows the system's appearance. */
+[data-look="default"] {
   --bg: #f3f1ec;
   --card: #ffffff;
   --card-edge: #e0dbd0;
@@ -20,7 +23,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  [data-look="default"] {
     --bg: #1b1a20;
     --card: #25242c;
     --card-edge: #3a3843;

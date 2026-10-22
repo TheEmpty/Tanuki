@@ -10,7 +10,7 @@ mod menu;
 
 use audio::ChimePlayer;
 use chrono::Utc;
-use notifier_core::theme::{Look, Theme};
+use notifier_core::theme::{Look, THEMES};
 use state::{AppState, SettingsError, Status};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -55,11 +55,11 @@ struct ThemeOption {
 /// Returns every theme the user can pick.
 #[tauri::command]
 fn get_themes() -> Vec<ThemeOption> {
-    Theme::ALL
+    THEMES
         .iter()
-        .map(|theme| ThemeOption {
-            id: theme.id().to_owned(),
-            name: theme.name().to_owned(),
+        .map(|info| ThemeOption {
+            id: info.id.to_owned(),
+            name: info.name.to_owned(),
         })
         .collect()
 }

@@ -302,6 +302,7 @@ fn normalise(samples: &mut [f32], peak: f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::LOOKS;
 
     #[test]
     fn the_chime_has_the_expected_length() {
@@ -313,7 +314,7 @@ mod tests {
 
     #[test]
     fn the_chime_stays_within_the_normal_range() {
-        for look in Look::ALL {
+        for look in LOOKS.iter().map(|info| info.look) {
             let chime = render(Sound::Chime(look));
             assert!(
                 chime.samples.iter().all(|sample| sample.abs() <= 1.0),
@@ -324,7 +325,7 @@ mod tests {
 
     #[test]
     fn the_chime_actually_makes_sound() {
-        for look in Look::ALL {
+        for look in LOOKS.iter().map(|info| info.look) {
             let chime = render(Sound::Chime(look));
             let loudest = chime.samples.iter().fold(0.0f32, |acc, v| acc.max(v.abs()));
             assert!(loudest > 0.1, "the {look:?} chime should not be silent");
@@ -333,7 +334,7 @@ mod tests {
 
     #[test]
     fn the_chime_fades_out_at_the_end() {
-        for look in Look::ALL {
+        for look in LOOKS.iter().map(|info| info.look) {
             let chime = render(Sound::Chime(look));
             let tail = &chime.samples[chime.samples.len() - 100..];
             assert!(tail.iter().all(|sample| sample.abs() < 0.01));
@@ -342,7 +343,7 @@ mod tests {
 
     #[test]
     fn the_chime_starts_quietly() {
-        for look in Look::ALL {
+        for look in LOOKS.iter().map(|info| info.look) {
             let chime = render(Sound::Chime(look));
             assert!(chime.samples[0].abs() < 0.05);
         }

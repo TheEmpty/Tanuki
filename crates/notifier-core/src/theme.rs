@@ -8,6 +8,10 @@
 //! actually in use, because the automatic theme follows the season: it is
 //! Halloween in October and Christmas in December, and the plain look for
 //! the rest of the year.
+//!
+//! What each one is called, and what it is called in a settings file, is in
+//! [`THEMES`] and [`LOOKS`]. Those tables are the one place a theme or a look
+//! is written down; the enums beside them are handles.
 
 use chrono::{DateTime, Datelike, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -32,38 +36,69 @@ pub enum Theme {
     Christmas,
 }
 
+/// Everything that is known about a theme.
+#[derive(Debug, Clone, Copy)]
+pub struct ThemeInfo {
+    /// The theme this describes.
+    pub theme: Theme,
+    /// A stable identifier, used in the settings file and by the interface.
+    pub id: &'static str,
+    /// The name shown in the interface.
+    pub name: &'static str,
+}
+
+/// Every theme, in the order the interface offers them.
+///
+/// A theme that is not in here cannot be picked, so this is also the list the
+/// dropdown shows.
+pub const THEMES: &[ThemeInfo] = &[
+    ThemeInfo {
+        theme: Theme::Automatic,
+        id: "automatic",
+        name: "Automatic (Default)",
+    },
+    ThemeInfo {
+        theme: Theme::MatchSystem,
+        id: "match-system",
+        name: "Match System",
+    },
+    ThemeInfo {
+        theme: Theme::Halloween,
+        id: "halloween",
+        name: "Halloween",
+    },
+    ThemeInfo {
+        theme: Theme::Christmas,
+        id: "christmas",
+        name: "Christmas",
+    },
+];
+
 impl Theme {
-    /// Every theme, in the order they should be offered.
-    pub const ALL: [Theme; 4] = [
-        Theme::Automatic,
-        Theme::MatchSystem,
-        Theme::Halloween,
-        Theme::Christmas,
-    ];
+    /// Everything that is known about this theme.
+    pub fn info(self) -> &'static ThemeInfo {
+        THEMES
+            .iter()
+            .find(|info| info.theme == self)
+            .expect("every theme is described in THEMES")
+    }
 
     /// A stable identifier, used in the settings file and by the interface.
     pub fn id(self) -> &'static str {
-        match self {
-            Theme::Automatic => "automatic",
-            Theme::MatchSystem => "match-system",
-            Theme::Halloween => "halloween",
-            Theme::Christmas => "christmas",
-        }
+        self.info().id
     }
 
     /// The name shown in the interface.
     pub fn name(self) -> &'static str {
-        match self {
-            Theme::Automatic => "Automatic (Default)",
-            Theme::MatchSystem => "Match System",
-            Theme::Halloween => "Halloween",
-            Theme::Christmas => "Christmas",
-        }
+        self.info().name
     }
 
     /// Looks a theme up by its identifier.
     pub fn from_id(id: &str) -> Option<Theme> {
-        Theme::ALL.iter().copied().find(|theme| theme.id() == id)
+        THEMES
+            .iter()
+            .find(|info| info.id == id)
+            .map(|info| info.theme)
     }
 
     /// The look this theme means on a given day.
@@ -112,26 +147,53 @@ pub enum Look {
     Christmas,
 }
 
+/// Everything that is known about a look.
+#[derive(Debug, Clone, Copy)]
+pub struct LookInfo {
+    /// The look this describes.
+    pub look: Look,
+    /// A stable identifier, used by the interface to pick the colours.
+    pub id: &'static str,
+    /// The name of the look.
+    pub name: &'static str,
+}
+
+/// Every look, in the order the interface offers them.
+pub const LOOKS: &[LookInfo] = &[
+    LookInfo {
+        look: Look::Default,
+        id: "default",
+        name: "Default",
+    },
+    LookInfo {
+        look: Look::Halloween,
+        id: "halloween",
+        name: "Halloween",
+    },
+    LookInfo {
+        look: Look::Christmas,
+        id: "christmas",
+        name: "Christmas",
+    },
+];
+
 impl Look {
-    /// Every look, in the order they should be offered.
-    pub const ALL: [Look; 3] = [Look::Default, Look::Halloween, Look::Christmas];
+    /// Everything that is known about this look.
+    pub fn info(self) -> &'static LookInfo {
+        LOOKS
+            .iter()
+            .find(|info| info.look == self)
+            .expect("every look is described in LOOKS")
+    }
 
     /// A stable identifier, used by the interface to pick the colours.
     pub fn id(self) -> &'static str {
-        match self {
-            Look::Default => "default",
-            Look::Halloween => "halloween",
-            Look::Christmas => "christmas",
-        }
+        self.info().id
     }
 
     /// The name of the look.
     pub fn name(self) -> &'static str {
-        match self {
-            Look::Default => "Default",
-            Look::Halloween => "Halloween",
-            Look::Christmas => "Christmas",
-        }
+        self.info().name
     }
 }
 
@@ -151,18 +213,31 @@ mod tests {
     }
 
     #[test]
-    fn the_identifiers_are_unique() {
-        let mut ids: Vec<&str> = Theme::ALL.iter().map(|theme| theme.id()).collect();
-        let count = ids.len();
-        ids.sort_unstable();
-        ids.dedup();
-        assert_eq!(ids.len(), count, "every theme needs its own identifier");
+    fn every_theme_is_described_and_offered_in_this_order() {
+        // A theme that is missing from THEMES cannot be picked, so a new one
+        // has to be added there too. This test is what says so.
+        let ids: Vec<&str> = THEMES.iter().map(|info| info.id).collect();
+        assert_eq!(
+            ids,
+            ["automatic", "match-system", "halloween", "christmas"],
+            "a new theme needs a row in THEMES"
+        );
+    }
+
+    #[test]
+    fn every_look_is_described() {
+        let ids: Vec<&str> = LOOKS.iter().map(|info| info.id).collect();
+        assert_eq!(
+            ids,
+            ["default", "halloween", "christmas"],
+            "a new look needs a row in LOOKS"
+        );
     }
 
     #[test]
     fn a_theme_can_be_found_by_its_identifier() {
-        for theme in Theme::ALL {
-            assert_eq!(Theme::from_id(theme.id()), Some(theme));
+        for info in THEMES {
+            assert_eq!(Theme::from_id(info.id), Some(info.theme));
         }
     }
 
@@ -181,17 +256,38 @@ mod tests {
 
     #[test]
     fn themes_round_trip_through_json() {
-        for theme in Theme::ALL {
-            let encoded = serde_json::to_string(&theme).unwrap();
+        for info in THEMES {
+            let encoded = serde_json::to_string(&info.theme).unwrap();
             let decoded: Theme = serde_json::from_str(&encoded).unwrap();
-            assert_eq!(theme, decoded);
+            assert_eq!(info.theme, decoded);
+        }
+    }
+
+    #[test]
+    fn looks_round_trip_through_json() {
+        for info in LOOKS {
+            let encoded = serde_json::to_string(&info.look).unwrap();
+            let decoded: Look = serde_json::from_str(&encoded).unwrap();
+            assert_eq!(info.look, decoded);
         }
     }
 
     #[test]
     fn the_identifiers_are_what_json_uses() {
-        let encoded = serde_json::to_string(&Theme::Halloween).unwrap();
-        assert_eq!(encoded, "\"halloween\"");
+        // The interface picks its colours with these, so a look's identifier
+        // and the name it has in a settings file have to be the same thing.
+        for info in THEMES {
+            assert_eq!(
+                serde_json::to_string(&info.theme).unwrap(),
+                format!("\"{}\"", info.id)
+            );
+        }
+        for info in LOOKS {
+            assert_eq!(
+                serde_json::to_string(&info.look).unwrap(),
+                format!("\"{}\"", info.id)
+            );
+        }
     }
 
     #[test]
@@ -241,15 +337,6 @@ mod tests {
                 Look::Default,
                 "month {month} should stay plain"
             );
-        }
-    }
-
-    #[test]
-    fn looks_round_trip_through_json() {
-        for look in Look::ALL {
-            let encoded = serde_json::to_string(&look).unwrap();
-            let decoded: Look = serde_json::from_str(&encoded).unwrap();
-            assert_eq!(look, decoded);
         }
     }
 }
