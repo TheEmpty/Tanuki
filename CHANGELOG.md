@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.2
+
+The icon in the Windows notification area said there were no reviews, however
+many there were.
+
+The text in the tray menu was right, but the tooltip on the icon was written
+once when the tray was built and never changed. On Windows the tooltip is
+what the user sees when they hover over the icon, so it went on saying there
+were no reviews. It now follows the count, like the menu does.
+
+A check that failed also said there were no reviews waiting, which is not
+something it knows. The tray now says that it could not check.
+
 ## 0.2.1
 
 Three fixes for Windows, found by somebody using the app on a Windows

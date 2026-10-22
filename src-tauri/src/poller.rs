@@ -227,12 +227,17 @@ fn report(app: &AppHandle, state: &Arc<AppState>, status: &Status) {
         eprintln!("tanuki: could not send the status to the window: {error}");
     }
 
-    let text = match status.reviews {
-        0 => "No reviews waiting".to_owned(),
-        1 => "1 review waiting".to_owned(),
-        count => format!("{count} reviews waiting"),
+    // A check that failed has not found out anything, so it does not get to
+    // say that there are no reviews waiting.
+    let text = match &status.error {
+        Some(_) => "Could not check for reviews".to_owned(),
+        None => match status.reviews {
+            0 => "No reviews waiting".to_owned(),
+            1 => "1 review waiting".to_owned(),
+            count => format!("{count} reviews waiting"),
+        },
     };
-    crate::tray::set_status(&state.status_item, &text);
+    crate::tray::set_status(app, &state.status_item, &text);
 }
 
 /// The look that is in use right now.

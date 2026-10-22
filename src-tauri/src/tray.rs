@@ -90,9 +90,19 @@ pub fn show_settings(app: &AppHandle) {
     }
 }
 
-/// Updates the status line in the tray menu.
-pub fn set_status(status: &MenuItem<Wry>, text: &str) {
+/// Updates the status shown in the tray.
+///
+/// The text goes into the menu, and the tooltip goes onto the icon. On
+/// Windows the tooltip is what the user sees when they hover over the icon
+/// in the notification area, and it was set once when the tray was built
+/// and never changed, so it said there were no reviews however many there
+/// were.
+pub fn set_status(app: &AppHandle, status: &MenuItem<Wry>, text: &str) {
     let _ = status.set_text(text);
+
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_tooltip(Some(format!("Tanuki — {text}")));
+    }
 }
 
 /// Opens a URL in the default browser.
