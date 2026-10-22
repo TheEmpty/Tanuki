@@ -20,7 +20,7 @@ crates/notifier-core/   plain Rust, no user interface, fully tested
 
 src-tauri/              the Tauri application
   audio.rs              plays the chime on a thread of its own
-  lib.rs                the commands, and the wiring
+  lib.rs                the commands, the wiring, and the settings window
   menu.rs               the application menu, which is invisible
   poller.rs             the background polling loop
   state.rs              shared state, and what is remembered between runs
@@ -87,16 +87,21 @@ copy in one is not refreshed by a build of the other. If the app shows
 something that is not in `ui/index.html`, rebuild the thing you are about to
 run, and check the other one.
 
-**WebKit caches the page itself.** Tauri sends no cache headers for its
-asset protocol, so the settings window can be served a copy of the interface
-from a previous run. Clear it with:
+**WebKit does not cache the interface, and the app makes sure of it.** Tauri
+sends no cache headers and no validators for its asset protocol, so there is
+nothing for a browser to cache — a page loaded from a previous build is
+always fetched afresh. This was checked by building the app twice with a
+marker in the interface: the second build showed the marker, so the earlier
+"stale interface" was the build script above and never the cache.
 
-```sh
-rm -rf ~/Library/WebKit/com.tanuki.notifier ~/Library/WebKit/tanuki \
-       ~/Library/Caches/com.tanuki.notifier ~/Library/Caches/tanuki
-```
-
-This is not only a development annoyance — see the outstanding issues below.
+The app still sends `Cache-Control: no-store` on every response, so that this
+cannot change under it. That is the reason the settings window is built in
+`lib.rs` rather than by Tauri: `on_web_resource_request` is the only hook
+that can add a header to an asset response, and it is only available on a
+window the app builds itself. The configuration therefore says `create:
+false` for the window, and `create_main_window` builds it from that same
+configuration. Keep the two in step — the window's size, title and position
+still live in `tauri.conf.json`.
 
 ### macOS will not banner a notification from the app in front
 
@@ -182,12 +187,6 @@ that Command-Q does not quit. It is written by one method so the two
 cannot disagree, and the locks are released before it is called.
 
 ## Known outstanding issues
-
-**The interface can be served stale to a user who updates the app.** Tauri
-sends no cache headers, so WebKit may serve a cached page from a previous
-version, leaving the settings window showing settings that no longer
-exist. It needs fixing before this goes to anyone: either cache headers on
-the asset protocol, or a URL that changes with each build.
 
 **The window is tall.** It is 460 by 840, which is most of a laptop screen.
 Every setting has a row with a description, and they add up. It scrolls if

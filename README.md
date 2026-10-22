@@ -48,6 +48,20 @@ restart never hides a queue from you.
 
 [token]: https://www.wanikani.com/settings/personal_access_tokens
 
+## Installing
+
+Download the installer for your platform from the
+[releases page](https://github.com/TheEmpty/Tanuki/releases), and put Tanuki in
+your applications folder.
+
+The app is not signed, so it will not open without a little persuasion:
+
+- **macOS.** Right-click Tanuki.app and choose *Open*, then *Open* again. Or
+  run `xattr -dr com.apple.quarantine /Applications/Tanuki.app` to take the
+  quarantine mark off it.
+- **Windows.** "Windows protected your PC" means exactly that it does not know
+  the publisher. Choose *More info* and then *Run anyway*.
+
 ## Building
 
 The project is a Cargo workspace. You need a Rust toolchain; the interface is
@@ -72,6 +86,23 @@ That writes:
 
 Windows installers have to be built on Windows; the WiX and NSIS toolchains
 are not available on other platforms.
+
+### Releasing
+
+The version lives in two places, and they have to agree: `version` in
+`Cargo.toml`, and `version` in `src-tauri/tauri.conf.json`.
+
+To publish a release:
+
+1. Write the release notes at the top of `CHANGELOG.md`.
+2. Bump the version in both places.
+3. Commit, and tag the commit: `git tag v0.2.0`.
+4. Push the tag: `git push origin main --tags`.
+
+The [release workflow](.github/workflows/release.yml) then checks the code on
+Linux, builds the macOS and Windows bundles on their own runners, and creates
+the release with the notes from the changelog. Nothing is signed, so both
+installers need the persuasion described above.
 
 ### Icons
 
