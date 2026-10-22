@@ -40,12 +40,6 @@ will be fixed the same way.
   and *Christmas* can be picked all year round.
 - Lets you turn the themed sounds off, so the chime stays the same whatever
   the theme is doing.
-- Keeps running when you press Command-Q. The window goes away and Tanuki
-  goes back to the menu bar, because a notifier that stops watching the
-  review queue because of a stray keypress is no use at all. The first time
-  you do it, Tanuki says so, and points at its icon in the menu bar. You can
-  turn the setting on to make Command-Q quit as usual, or quit it from the
-  tray menu, or with Command-Option-Q.
 
 It only notifies when reviews *newly* become available. A queue that stays
 pending does not nag you, and the notification comes back after you clear it.
