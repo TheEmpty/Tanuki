@@ -156,7 +156,7 @@ async fn an_etag_makes_the_next_request_conditional() {
 #[tokio::test]
 async fn invalidating_the_cache_forgets_the_etag() {
     let server = MockServer::start_sequence(vec![
-        CannedResponse::ok(r#"{"total_count":1}"#).with_header("ETag", "\"tag\""),
+        CannedResponse::ok(r#"{"total_count":1}"#).with_header("ETag", "\"tag\"")
     ]);
     let mut client = client_for(&server);
     client.available_review_count().await.unwrap();

@@ -1,1 +1,3 @@
-fn main() { tanuki_lib::run() }
+fn main() {
+    tanuki_lib::run()
+}

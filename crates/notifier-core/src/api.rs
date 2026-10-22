@@ -103,7 +103,11 @@ impl SummaryData {
     }
 
     /// The number of subjects that unlock in each of the next `limit` hours.
-    pub fn upcoming_review_counts(&self, now: DateTime<Utc>, limit: usize) -> Vec<(DateTime<Utc>, usize)> {
+    pub fn upcoming_review_counts(
+        &self,
+        now: DateTime<Utc>,
+        limit: usize,
+    ) -> Vec<(DateTime<Utc>, usize)> {
         self.reviews
             .iter()
             .filter(|bucket| bucket.available_at > now)
@@ -143,7 +147,9 @@ impl WanikaniClient {
         let base_url = std::env::var(BASE_URL_ENV)
             .ok()
             .and_then(|value| Url::parse(&value).ok())
-            .unwrap_or_else(|| Url::parse(DEFAULT_BASE_URL).expect("the default base URL is valid"));
+            .unwrap_or_else(|| {
+                Url::parse(DEFAULT_BASE_URL).expect("the default base URL is valid")
+            });
 
         Self {
             http,
@@ -167,8 +173,8 @@ impl WanikaniClient {
     ///
     /// Used by the test suite to talk to a local server.
     pub fn with_base_url(mut self, base_url: impl AsRef<str>) -> Self {
-        self.base_url = Url::parse(base_url.as_ref())
-            .expect("the base URL should be a valid absolute URL");
+        self.base_url =
+            Url::parse(base_url.as_ref()).expect("the base URL should be a valid absolute URL");
         self
     }
 
@@ -177,10 +183,7 @@ impl WanikaniClient {
     /// This is the authoritative count: it reflects exactly what the review
     /// queue on the website would offer.
     pub async fn available_review_count(&mut self) -> Result<u32, ApiError> {
-        let url = self.url(
-            "assignments",
-            Some("immediately_available_for_review=true"),
-        )?;
+        let url = self.url("assignments", Some("immediately_available_for_review=true"))?;
         let mut request = self.authorised(url);
         if let Some(etag) = &self.assignments_etag {
             request = request.header(IF_NONE_MATCH, etag);

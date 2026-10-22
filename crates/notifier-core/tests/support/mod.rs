@@ -92,7 +92,9 @@ impl MockServer {
         let last = responses.last().cloned();
         let responses = Arc::new(Mutex::new(responses.into_iter()));
         Self::start_with(move |_| {
-            let mut responses = responses.lock().expect("the response lock should not be poisoned");
+            let mut responses = responses
+                .lock()
+                .expect("the response lock should not be poisoned");
             match responses.next() {
                 Some(response) => response,
                 None => last.clone().unwrap_or_else(|| {
@@ -108,7 +110,9 @@ impl MockServer {
         F: Fn(&str) -> CannedResponse + Send + Sync + 'static,
     {
         let listener = TcpListener::bind("127.0.0.1:0").expect("the test server should bind");
-        let address = listener.local_addr().expect("the test server should have an address");
+        let address = listener
+            .local_addr()
+            .expect("the test server should have an address");
         let (sender, requests) = channel();
         let thread_sender = sender.clone();
         let responder = Arc::new(responder);

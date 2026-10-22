@@ -76,7 +76,9 @@ async fn clearing_the_queue_re_arms_the_detector() {
         if path.contains("summary") {
             return CannedResponse::ok(SUMMARY_BODY);
         }
-        let mut counts = counts.lock().expect("the count lock should not be poisoned");
+        let mut counts = counts
+            .lock()
+            .expect("the count lock should not be poisoned");
         let count = counts.next().unwrap_or(4);
         CannedResponse::ok(format!(r#"{{"total_count":{count}}}"#))
     });
