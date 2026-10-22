@@ -1,10 +1,10 @@
 //! Shared state and the on-disk settings file.
 
-use notifier_core::credential::{CredentialError, TokenStore};
 use notifier_core::detect::Detector;
 use notifier_core::level::LevelWatcher;
 use notifier_core::settings::Settings;
 use notifier_core::theme::Look;
+use notifier_core::token::{TokenError, TokenStore};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::menu::MenuItem;
@@ -36,11 +36,11 @@ pub struct AppState {
     /// The menu bar item that shows the current status.
     pub status_item: MenuItem<Wry>,
     /// Where the API token is kept.
-    pub credentials: TokenStore,
-    /// The API token, read from the credential store once and kept in memory.
+    pub tokens: TokenStore,
+    /// The API token, read from the file once and kept in memory.
     ///
-    /// Reading the credential store can ask the operating system for
-    /// permission, so it is only done when the token actually changes.
+    /// The file is only read the first time, so it is not read again on
+    /// every poll.
     pub token: Mutex<Option<String>>,
     /// The level watcher, which notices when the user has levelled up.
     pub level: Mutex<LevelWatcher>,
@@ -70,7 +70,7 @@ impl AppState {
     /// Creates the state, loading the settings from disk.
     pub fn load(
         config_dir: &Path,
-        credentials: TokenStore,
+        tokens: TokenStore,
         status_item: MenuItem<Wry>,
     ) -> Result<Self, SettingsError> {
         let settings_path = config_dir.join("settings.json");
@@ -85,7 +85,7 @@ impl AppState {
             // already waiting are announced when the app starts.
             detector: Mutex::new(Detector::new()),
             status_item,
-            credentials,
+            tokens,
             token: Mutex::new(None),
             // The level the user was last seen at is remembered, so a level
             // up that happened while the app was not running is still
@@ -103,9 +103,9 @@ impl AppState {
 
     /// The API token, if one has been saved.
     ///
-    /// The credential store is only consulted the first time, so a system
-    /// that asks for permission does not ask on every poll.
-    pub fn token(&self) -> Result<Option<String>, CredentialError> {
+    /// The file is only read the first time, so it is not read again on
+    /// every poll.
+    pub fn token(&self) -> Result<Option<String>, TokenError> {
         let mut cached = self
             .token
             .lock()
@@ -115,19 +115,19 @@ impl AppState {
             return Ok(Some(token.clone()));
         }
 
-        match self.credentials.token() {
+        match self.tokens.token() {
             Ok(token) => {
                 *cached = Some(token.clone());
                 Ok(Some(token))
             }
-            Err(CredentialError::Missing) => Ok(None),
+            Err(TokenError::Missing) => Ok(None),
             Err(error) => Err(error),
         }
     }
 
     /// Stores a new API token and forgets the cached one.
-    pub fn set_token(&self, token: &str) -> Result<(), CredentialError> {
-        self.credentials.set_token(token)?;
+    pub fn set_token(&self, token: &str) -> Result<(), TokenError> {
+        self.tokens.set_token(token)?;
         *self
             .token
             .lock()
@@ -136,8 +136,8 @@ impl AppState {
     }
 
     /// Removes the stored API token.
-    pub fn clear_token(&self) -> Result<(), CredentialError> {
-        self.credentials.clear_token()?;
+    pub fn clear_token(&self) -> Result<(), TokenError> {
+        self.tokens.clear_token()?;
         *self
             .token
             .lock()

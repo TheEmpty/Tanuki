@@ -27,7 +27,7 @@ with a chime and a notification when reviews are ready.
 - A seasonal mascot: the tanuki is a pumpkin for Halloween, and wears a Santa
   hat for Christmas.
 - The API token is kept in the app's own configuration directory, in a file
-  only you can read, rather than in the system keychain.
+  only you can read.
 - Command-Q puts the window away instead of quitting, so a stray keypress
   cannot stop the app watching your review queue. Tanuki says so the first
   time, and points at its icon in the menu bar. You can turn that off in the

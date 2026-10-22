@@ -12,7 +12,7 @@ cost somebody an afternoon.
 crates/notifier-core/   plain Rust, no user interface, fully tested
   api.rs                the WaniKani client
   chime.rs              the bell, the spooky fall, the jingle, the fanfare
-  credential.rs         where the API token is kept
+  token.rs               where the API token is kept
   detect.rs             decides when reviews count as "new"
   level.rs              notices when the user has levelled up
   settings.rs           the user's preferences
@@ -67,8 +67,8 @@ chmod 600 ~/Library/Application\ Support/com.tanuki.notifier/token
 TANUKI_API_URL=http://127.0.0.1:8731/v2 ./target/release/tanuki
 ```
 
-`TANUKI_TEST_TOKEN` puts a token in place at startup instead, which is
-handy but writes to the keychain and will ask for permission.
+`TANUKI_TEST_TOKEN` puts a token in place at startup instead, which saves
+typing it in.
 
 ## Traps
 
@@ -154,15 +154,6 @@ not appear and the notification only goes into the panel. It is easy to
 leave a panel open by accident, and then it looks like notifications are
 broken when they are not. `killall NotificationCenter` closes it.
 
-### An unsigned app cannot keep a keychain item across a rebuild
-
-The app is not signed, and macOS ties a keychain item to the code that
-created it. Every rebuild changes the code, so the item can no longer be
-read without a prompt — and if the prompt is dismissed rather than always
-allowed, the token has to be typed in again. That is why the token lives in
-a file in the app's own configuration directory, with permissions only its
-owner can read, and why the keychain is no longer used at all.
-
 ### A dropped audio sink stops the sound
 
 `rodio`'s `DeviceSink` owns the stream that writes to the device. The
@@ -170,12 +161,6 @@ owner can read, and why the keychain is no longer used at all.
 immediately and silently. `audio.rs` holds the sink in `_sink` for the life
 of the thread for this reason. The underscore is deliberate — it is there
 to be kept, not read.
-
-### A keychain read at startup blocks the app
-
-Reading the credential store can put a password prompt on screen, and the
-app blocks in `setup()` until it is answered. The token is cached in memory
-after the first read so this happens at most once.
 
 ### The app is an accessory app, so it has no menu bar of its own
 

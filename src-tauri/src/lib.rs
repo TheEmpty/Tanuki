@@ -272,8 +272,8 @@ pub fn run() {
             // of the shared state.
             let status_item = tray::build(app.handle())?;
 
-            let credentials = notifier_core::TokenStore::in_dir(&config_dir);
-            let state = Arc::new(AppState::load(&config_dir, credentials, status_item)?);
+            let tokens = notifier_core::TokenStore::in_dir(&config_dir);
+            let state = Arc::new(AppState::load(&config_dir, tokens, status_item)?);
             let audio = Arc::new(ChimePlayer::new());
 
             // Keep the state around for the commands.
@@ -295,7 +295,7 @@ pub fn run() {
             update_command_q_item(app.handle());
 
             // The end to end test provides a token on the command line, so
-            // it does not have to go through the credential store.
+            // it does not have to be typed in.
             if let Ok(token) = std::env::var("TANUKI_TEST_TOKEN") {
                 if let Err(error) = state.set_token(&token) {
                     eprintln!("tanuki: could not store the test token: {error}");

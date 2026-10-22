@@ -2,15 +2,6 @@
 //!
 //! The token is kept in the application's own configuration directory, in a
 //! file only its owner can read.
-//!
-//! The system's credential store would be the more usual home for a secret,
-//! but on macOS the keychain ties an item to the application that created
-//! it. As soon as the application is rebuilt or upgraded, that tie no longer
-//! holds and macOS asks the user for their password before the token can be
-//! read again — and if the prompt is dismissed rather than always allowed,
-//! the token has to be typed in from scratch. A read-only API token does not
-//! need that ceremony, so it lives in a file next to the rest of the
-//! settings instead.
 
 use std::path::{Path, PathBuf};
 
@@ -20,7 +11,7 @@ pub const TOKEN_FILE: &str = "token";
 
 /// Something went wrong with the stored token.
 #[derive(Debug, thiserror::Error)]
-pub enum CredentialError {
+pub enum TokenError {
     /// There is no token stored.
     #[error("no API token has been saved")]
     Missing,
@@ -55,18 +46,18 @@ impl TokenStore {
         &self.path
     }
 
-    /// Returns the stored token, or [`CredentialError::Missing`] if there is
+    /// Returns the stored token, or [`TokenError::Missing`] if there is
     /// none.
-    pub fn token(&self) -> Result<String, CredentialError> {
+    pub fn token(&self) -> Result<String, TokenError> {
         match std::fs::read_to_string(&self.path) {
             Ok(contents) => Ok(contents.trim().to_owned()),
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Err(CredentialError::Missing),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Err(TokenError::Missing),
             Err(err) => Err(err.into()),
         }
     }
 
     /// Stores the token, replacing any previous one.
-    pub fn set_token(&self, token: &str) -> Result<(), CredentialError> {
+    pub fn set_token(&self, token: &str) -> Result<(), TokenError> {
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -75,7 +66,7 @@ impl TokenStore {
     }
 
     /// Removes the stored token, if any.
-    pub fn clear_token(&self) -> Result<(), CredentialError> {
+    pub fn clear_token(&self) -> Result<(), TokenError> {
         match std::fs::remove_file(&self.path) {
             Ok(()) => Ok(()),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -89,7 +80,7 @@ impl TokenStore {
 /// The permissions are set as the file is created, so the token is never on
 /// disk in a state where other users can read it.
 #[cfg(unix)]
-fn write_private(path: &Path, contents: &str) -> Result<(), CredentialError> {
+fn write_private(path: &Path, contents: &str) -> Result<(), TokenError> {
     use std::io::Write;
     use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
@@ -109,7 +100,7 @@ fn write_private(path: &Path, contents: &str) -> Result<(), CredentialError> {
 
 /// Writes a file that only its owner can read.
 #[cfg(not(unix))]
-fn write_private(path: &Path, contents: &str) -> Result<(), CredentialError> {
+fn write_private(path: &Path, contents: &str) -> Result<(), TokenError> {
     std::fs::write(path, contents)?;
     Ok(())
 }
@@ -129,13 +120,13 @@ mod tests {
         let dir = scratch("round-trip");
         let store = TokenStore::in_dir(&dir);
 
-        assert!(matches!(store.token(), Err(CredentialError::Missing)));
+        assert!(matches!(store.token(), Err(TokenError::Missing)));
 
         store.set_token("secret-token").unwrap();
         assert_eq!(store.token().unwrap(), "secret-token");
 
         store.clear_token().unwrap();
-        assert!(matches!(store.token(), Err(CredentialError::Missing)));
+        assert!(matches!(store.token(), Err(TokenError::Missing)));
 
         let _ = std::fs::remove_dir_all(&dir);
     }

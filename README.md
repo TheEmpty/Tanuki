@@ -143,7 +143,7 @@ crates/notifier-core/   pure Rust, no user interface
   detect.rs             decides when reviews count as "new"
   level.rs              notices when the user has levelled up
   chime.rs              synthesises the bell and the fanfare
-  credential.rs         where the token is kept
+  token.rs               where the token is kept
   settings.rs           the user's preferences
   theme.rs              the themes the user can pick
 
@@ -157,12 +157,8 @@ ui/                     the settings window (no build step)
 ```
 
 The API token is kept in the app's own configuration directory, in a file only
-its owner can read, rather than in the system's credential store. On macOS a
-keychain item is tied to the application that created it, so as soon as the
-app is rebuilt or upgraded macOS asks the user for their password before the
-token can be read again — and if that prompt is dismissed rather than always
-allowed, the token has to be typed in again from scratch. A read-only API token
-does not need that ceremony, and the file survives every upgrade untouched.
+its owner can read. The file survives every upgrade untouched, so the token
+only has to be pasted in once.
 
 The app polls `GET /v2/assignments?immediately_available_for_review` for the
 authoritative count of waiting reviews, and `GET /v2/summary` to learn when the
