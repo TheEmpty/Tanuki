@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A push to the same branch cancels the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache the build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check the formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- --deny warnings
+
+      - name: Test
+        run: cargo test --workspace
+
+  bundle:
+    name: Bundle (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            target: universal-apple-darwin
+            bundles: app,dmg
+          - name: Windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: msi,nsis
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache the build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      # The action downloads the Tauri CLI and the extra targets the bundle
+      # needs, which is quicker than compiling the CLI from source.
+      - name: Build the bundle
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tanuki-${{ matrix.name }}
+          path: ${{ target }}/release/bundle/
+          if-no-files-found: error
