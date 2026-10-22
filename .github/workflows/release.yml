@@ -73,11 +73,28 @@ jobs:
         with:
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
-      - name: Upload the bundle
+      # A release holds files, not folders, so the app is put in a zip and
+      # everything is gathered into one directory.
+      - name: Gather the installers
+        shell: bash
+        run: |
+          mkdir -p dist
+          bundle="target/${{ matrix.target }}/release/bundle"
+          if [ "${{ matrix.name }}" = "macOS" ]; then
+            cp "$bundle"/dmg/*.dmg dist/
+            cd "$bundle/macos"
+            zip -r "$GITHUB_WORKSPACE/dist/Tanuki.app.zip" Tanuki.app
+          else
+            cp "$bundle"/msi/*.msi dist/
+            cp "$bundle"/nsis/*.exe dist/
+          fi
+          ls -l dist
+
+      - name: Upload the installers
         uses: actions/upload-artifact@v4
         with:
           name: tanuki-${{ matrix.name }}
-          path: ${{ matrix.target }}/release/bundle/
+          path: dist/
           if-no-files-found: error
 
   publish:
@@ -87,10 +104,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download the bundles
+      # Only the installers, and not what the Tauri action uploaded for
+      # itself.
+      - name: Download the installers
         uses: actions/download-artifact@v4
         with:
           path: bundles
+          pattern: tanuki-*
           merge-multiple: true
 
       - name: List what is being published
