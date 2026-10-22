@@ -44,10 +44,12 @@ jobs:
         include:
           - name: macOS
             os: macos-latest
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
             target: universal-apple-darwin
             bundles: app,dmg
           - name: Windows
             os: windows-latest
+            rust_targets: x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
             bundles: msi,nsis
     steps:
@@ -56,7 +58,7 @@ jobs:
       - name: Install the toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.rust_targets }}
 
       - name: Cache the build
         uses: Swatinem/rust-cache@v2
@@ -76,5 +78,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tanuki-${{ matrix.name }}
-          path: ${{ target }}/release/bundle/
+          path: ${{ matrix.target }}/release/bundle/
           if-no-files-found: error
