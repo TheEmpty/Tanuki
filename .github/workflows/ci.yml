@@ -83,17 +83,17 @@ jobs:
       - name: Gather the installers
         shell: bash
         run: |
-          mkdir -p dist
-          bundle="target/${{ matrix.target }}/release/bundle"
+          dist="$GITHUB_WORKSPACE/dist"
+          bundle="$GITHUB_WORKSPACE/target/${{ matrix.target }}/release/bundle"
+          mkdir -p "$dist"
           if [ "${{ matrix.name }}" = "macOS" ]; then
-            cp "$bundle"/dmg/*.dmg dist/
-            cd "$bundle/macos"
-            zip -r "$GITHUB_WORKSPACE/dist/Tanuki.app.zip" Tanuki.app
+            cp "$bundle"/dmg/*.dmg "$dist/"
+            (cd "$bundle/macos" && zip -r "$dist/Tanuki.app.zip" Tanuki.app)
           else
-            cp "$bundle"/msi/*.msi dist/
-            cp "$bundle"/nsis/*.exe dist/
+            cp "$bundle"/msi/*.msi "$dist/"
+            cp "$bundle"/nsis/*.exe "$dist/"
           fi
-          ls -l dist
+          ls -l "$dist"
 
       - name: Upload the installers
         uses: actions/upload-artifact@v4
