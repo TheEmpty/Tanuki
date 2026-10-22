@@ -2450,7 +2450,7 @@ dependencies = [
 
 [[package]]
 name = "notifier-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "reqwest",
@@ -4289,7 +4289,7 @@ dependencies = [
 
 [[package]]
 name = "tanuki"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "notifier-core",

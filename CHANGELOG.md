@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1
+
+Three fixes for Windows, found by somebody using the app on a Windows
+machine.
+
+- The app no longer opens a terminal window beside it. Windows gives a
+  program a console unless it says that it is a windowed program, and a
+  console is a terminal.
+- The test notification no longer makes the settings window vanish. The
+  window was only being put away on macOS, where a notification from the app
+  in front does not put a banner up. Windows shows the notification either
+  way, so there the window stays where it is.
+- The setting for Command-Q is no longer shown on Windows, which has neither
+  a Command-Q nor a menu bar, so the setting promised something that could
+  not happen.
+
 ## 0.2.0
 
 ![The Tanuki settings window](https://raw.githubusercontent.com/TheEmpty/Tanuki/main/docs/settings.png)

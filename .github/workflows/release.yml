@@ -116,8 +116,18 @@ jobs:
       - name: List what is being published
         run: find bundles -type f | sort
 
-      # The release notes are the changelog, which is written by hand so they
-      # read like a release rather than a list of commits.
+      # The release notes are the part of the changelog for this version, so
+      # that the page does not repeat the notes of the last one.
+      - name: Write the notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          awk -v tag="$TAG" '
+            /^## / { writing = ($2 == tag || $2 == substr(tag, 2)); next }
+            writing { print }
+          ' CHANGELOG.md > notes.md
+          cat notes.md
+
       - name: Publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -125,5 +135,5 @@ jobs:
         run: |
           gh release create "$TAG" \
             --title "Tanuki $TAG" \
-            --notes-file CHANGELOG.md \
+            --notes-file notes.md \
             bundles/*
