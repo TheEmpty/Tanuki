@@ -1,6 +1,13 @@
 # Changelog
 
+Tanuki is an unofficial third-party WaniKani review notifier for macOS and
+Windows. It lives in the menu bar, watches your review queue, and tells you
+with a chime and a notification when reviews are waiting for you. It is
+written and maintained entirely by an AI coding agent.
+
 ## 0.2.2
+
+![The Tanuki settings window](https://raw.githubusercontent.com/TheEmpty/Tanuki/v0.2.2/docs/screenshots/0.2.2.png)
 
 The icon in the Windows notification area said there were no reviews, however
 many there were.
@@ -14,6 +21,8 @@ A check that failed also said there were no reviews waiting, which is not
 something it knows. The tray now says that it could not check.
 
 ## 0.2.1
+
+![The Tanuki settings window](https://raw.githubusercontent.com/TheEmpty/Tanuki/v0.2.1/docs/screenshots/0.2.1.png)
 
 Three fixes for Windows, found by somebody using the app on a Windows
 machine.
@@ -31,19 +40,14 @@ machine.
 
 ## 0.2.0
 
-![The Tanuki settings window](https://raw.githubusercontent.com/TheEmpty/Tanuki/main/docs/settings.png)
+![The Tanuki settings window](https://raw.githubusercontent.com/TheEmpty/Tanuki/v0.2.0/docs/screenshots/0.2.0.png)
 
 The first release of Tanuki.
 
-Tanuki is an unofficial third-party WaniKani review notifier for macOS and
-Windows. It lives in the menu bar, watches your review queue, and tells you
-with a chime and a notification when reviews are ready.
-
-> **Tanuki is written and maintained entirely by an AI coding agent.** There
-> is no hand-written code in it. The Rust, the interface, the tests, the CI
-> and these releases were all produced by an AI working from the notes in
-> `AGENTS.md`; a human decides what should be built and says when it is
-> finished. Bug fixes and documentation are done the same way.
+> There is no hand-written code in Tanuki. The Rust, the interface, the
+> tests, the CI and these releases were all produced by an AI working from
+> the notes in `AGENTS.md`; a human decides what should be built and says
+> when it is finished. Bug fixes and documentation are done the same way.
 
 - Watches the WaniKani API for reviews that are ready to be done, and plays a
   short bell and posts a system notification when they are.

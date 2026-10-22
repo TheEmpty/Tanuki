@@ -27,7 +27,9 @@ src-tauri/              the Tauri application
   tray.rs               the menu bar icon
 
 ui/                     the settings window, no build step
+docs/                    the pictures used in the README and the releases
 dev/mockapi.py          a stand-in for the WaniKani API
+dev/release-notes.py    writes the notes for a release
 ```
 
 The split is deliberate: `notifier-core` has no idea a window or an audio
@@ -181,6 +183,52 @@ application menu it builds exists purely for its keyboard shortcuts, and
 `Command-Q` is the one that matters.
 
 ## Conventions
+
+### Making a release
+
+**Always ask before cutting a release.** A tag makes a release, and a
+release is public and cannot be taken back quietly. Say what the release
+would contain and wait to be told to go ahead, even when the fixes are
+ready and the tests are green.
+
+Every release page has the same shape, because somebody who has never seen
+the app may land on the notes for any one of them:
+
+1. A screenshot of that version, at the top.
+2. A blurb about what the application is and does.
+3. The notes for that version.
+
+The blurb is the text between the title and the first version in
+`CHANGELOG.md`, and the screenshot is the first line of each version's part
+of it. `dev/release-notes.py` puts the three in that order, and the release
+workflow runs it.
+
+The screenshot is fetched from the release's **tag**, not from `main`:
+
+    https://raw.githubusercontent.com/TheEmpty/Tanuki/v0.2.2/docs/screenshots/0.2.2.png
+
+That is why the picture has to be committed before the tag is made, and why
+only the newest one is kept on `main` — it is the one the README shows. A
+release page keeps the picture it was published with even after the file is
+removed from `main`, because the tag still has it.
+
+To make a release:
+
+1. Write the notes for the version at the top of `CHANGELOG.md`, with its
+   screenshot on the first line of them.
+2. Take the screenshot from that version's build and put it in
+   `docs/screenshots/<version>.png`. It should be scaled to 600 pixels
+   high, which is what `sips -Z 600 600` does. Point the README at it.
+3. Bump the version in `Cargo.toml` and in `src-tauri/tauri.conf.json`.
+4. Commit, and tag the commit: `git tag v0.2.2`.
+5. Push the tag: `git push origin main --tags`.
+6. Remove the previous version's screenshot from `main`, and point the
+   README at the new one if step 2 left that for later.
+
+The [release workflow](.github/workflows/release.yml) then checks the code
+on macOS, builds the macOS and Windows bundles on their own runners, and
+creates the release. Nothing is signed, so both installers need the
+persuasion described in the README.
 
 ### Adding a theme
 

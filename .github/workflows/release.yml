@@ -116,16 +116,14 @@ jobs:
       - name: List what is being published
         run: find bundles -type f | sort
 
-      # The release notes are the part of the changelog for this version, so
-      # that the page does not repeat the notes of the last one.
+      # The notes are a screenshot of this version, a blurb about what the
+      # application is and does, and then the notes for this version. A
+      # reader who lands on this release may never have seen the app.
       - name: Write the notes
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          awk -v tag="$TAG" '
-            /^## / { writing = ($2 == tag || $2 == substr(tag, 2)); next }
-            writing { print }
-          ' CHANGELOG.md > notes.md
+          python3 dev/release-notes.py "$TAG" > notes.md
           cat notes.md
 
       - name: Publish

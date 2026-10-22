@@ -10,7 +10,7 @@ Tanuki is not affiliated with, endorsed by, or made by WaniKani. It is a
 third-party app that uses only your own personal access token, and it reads
 nothing but your review queue.
 
-![The Tanuki settings window](docs/settings.png)
+![The Tanuki settings window](docs/screenshots/0.2.2.png)
 
 ## Written by an AI
 
@@ -102,15 +102,24 @@ The version lives in two places, and they have to agree: `version` in
 
 To publish a release:
 
-1. Write the release notes at the top of `CHANGELOG.md`.
-2. Bump the version in both places.
-3. Commit, and tag the commit: `git tag v0.2.0`.
-4. Push the tag: `git push origin main --tags`.
+1. Write the release notes for the version at the top of `CHANGELOG.md`, with
+   a screenshot of that version on the first line of them.
+2. Take that screenshot from the version's own build and put it in
+   `docs/screenshots/<version>.png`, scaled to 600 pixels high.
+3. Bump the version in both places.
+4. Commit, and tag the commit: `git tag v0.2.0`.
+5. Push the tag: `git push origin main --tags`.
 
 The [release workflow](.github/workflows/release.yml) then checks the code on
-Linux, builds the macOS and Windows bundles on their own runners, and creates
-the release with the notes from the changelog. Nothing is signed, so both
+macOS, builds the macOS and Windows bundles on their own runners, and creates
+the release. Its notes are a screenshot of that version, a blurb about what
+the app is, and then the notes for that version. Nothing is signed, so both
 installers need the persuasion described above.
+
+The screenshot is fetched from the tag, not from `main`, so a release page
+keeps the picture it was published with. Only the newest screenshot is kept
+in the repository, and it is the one the README shows: when a release has
+been tagged, the picture of the one before it is removed from `main`.
 
 ### Icons
 
