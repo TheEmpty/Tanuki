@@ -10,6 +10,8 @@ Tanuki is not affiliated with, endorsed by, or made by WaniKani. It is a
 third-party app that uses only your own personal access token, and it reads
 nothing but your review queue.
 
+![The Tanuki settings window](docs/settings.png)
+
 ## Written by an AI
 
 Tanuki is written and maintained entirely by an AI coding agent. There is no

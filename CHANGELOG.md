@@ -2,6 +2,8 @@
 
 ## 0.2.0
 
+![The Tanuki settings window](https://raw.githubusercontent.com/TheEmpty/Tanuki/main/docs/settings.png)
+
 The first release of Tanuki.
 
 Tanuki is an unofficial third-party WaniKani review notifier for macOS and
