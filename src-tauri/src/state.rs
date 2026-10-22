@@ -187,6 +187,9 @@ impl AppState {
     /// Whether to tell the user that Tanuki is still running.
     ///
     /// It is only worth saying once, so the app does not nag.
+    ///
+    /// Only macOS has a Command-Q to warn about.
+    #[cfg(target_os = "macos")]
     pub fn should_warn_about_command_q(&self) -> bool {
         !*self
             .told_about_command_q
@@ -195,6 +198,7 @@ impl AppState {
     }
 
     /// Remembers that the user has been told Tanuki is still running.
+    #[cfg(target_os = "macos")]
     pub fn remember_command_q_warning(&self) {
         {
             let mut told = self

@@ -72,6 +72,40 @@ handy but writes to the keychain and will ask for permission.
 
 ## Traps
 
+### The app has only ever been run on a Mac
+
+**The Windows build was broken for the whole of the first version.** The
+Command-Q menu, the handling of it, and the warning that Tanuki is still
+running are all macOS things, so the code for them sits behind
+`#[cfg(target_os = "macos")]` — and `update_command_q_item` reached for
+`menu::HIDE` outside that guard. Nothing on a Mac ever noticed, because the
+code it was reaching for was there.
+
+The way to catch that sort of thing without a Windows machine is to turn the
+conditional compilation the other way round and compile:
+
+```sh
+sed -i '' 's/target_os = "macos"/target_os = "windows"/g' src-tauri/src/*.rs
+cargo clippy --workspace --all-targets -- --deny warnings
+```
+
+That is not a real Windows build, but it catches the two mistakes that
+matter: a name that only exists on one platform, and a function that nothing
+calls on the other. Put it back afterwards.
+
+**Tauri on Linux needs the GTK and WebKit development packages.** The
+`Check` job in the workflows runs on macOS rather than Linux for that
+reason. A Linux runner has none of them, so `cargo clippy` fails in
+`glib-sys` before it reaches any of Tanuki's own code:
+
+```sh
+sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+    libayatana-appindicator3-dev librsvg2-dev build-essential
+```
+
+Tanuki does not ship for Linux, so this is only worth doing if you are
+changing something that has to keep working there.
+
 ### The interface is cached, in two places
 
 **Cargo will not notice an edit to a file in `ui/`.** `tauri-build` asks

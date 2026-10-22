@@ -10,7 +10,11 @@ permissions:
 jobs:
   check:
     name: Check
-    runs-on: ubuntu-latest
+    # macOS and Windows are the platforms Tanuki ships on, and they are the
+    # ones that can be checked without a pile of system libraries: building
+    # Tauri on Linux needs the GTK and WebKit development packages, which the
+    # runners do not have.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 

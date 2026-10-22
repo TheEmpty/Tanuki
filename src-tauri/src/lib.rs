@@ -103,22 +103,19 @@ fn save_settings(
     shared: State<'_, Shared>,
     settings: notifier_core::Settings,
 ) -> Result<Look, SettingsError> {
-    let (launch_at_login, quits, look) = {
+    let (launch_at_login, look) = {
         let mut current = shared
             .state
             .settings
             .lock()
             .expect("the settings lock should not be poisoned");
         *current = settings;
-        (
-            current.launch_at_login,
-            current.quit_with_command_q,
-            current.theme.resolve(Utc::now()),
-        )
+        (current.launch_at_login, current.theme.resolve(Utc::now()))
     };
     shared.state.save_settings()?;
     apply_autostart(&app, launch_at_login);
-    update_command_q_item(&app, quits);
+    #[cfg(target_os = "macos")]
+    update_command_q_item(&app);
     Ok(look)
 }
 
@@ -239,7 +236,7 @@ fn create_main_window(app: &tauri::App) -> tauri::Result<()> {
 
 /// Starts Tanuki.
 pub fn run() {
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -253,15 +250,13 @@ pub fn run() {
     // The stock macOS menu quits the app on Command-Q. Tanuki brings its
     // own menu, where Command-Q puts the window away instead.
     #[cfg(target_os = "macos")]
-    {
-        builder = builder
-            .menu(menu::build)
-            .on_menu_event(|app, event| match event.id().as_ref() {
-                menu::HIDE => command_q(app),
-                menu::QUIT => app.exit(0),
-                _ => {}
-            });
-    }
+    let builder = builder
+        .menu(menu::build)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            menu::HIDE => command_q(app),
+            menu::QUIT => app.exit(0),
+            _ => {}
+        });
 
     builder
         .setup(|app| {
@@ -288,15 +283,16 @@ pub fn run() {
             });
 
             // Make sure the login item matches the saved preference.
-            let (launch_at_login, quits) = {
+            let launch_at_login = {
                 let settings = state
                     .settings
                     .lock()
                     .expect("the settings lock should not be poisoned");
-                (settings.launch_at_login, settings.quit_with_command_q)
+                settings.launch_at_login
             };
             apply_autostart(app.handle(), launch_at_login);
-            update_command_q_item(app.handle(), quits);
+            #[cfg(target_os = "macos")]
+            update_command_q_item(app.handle());
 
             // The end to end test provides a token on the command line, so
             // it does not have to go through the credential store.
@@ -345,6 +341,9 @@ pub fn run() {
 /// By default it only puts the window away, because a notifier that stops
 /// watching the review queue because of a stray keypress is no use at all.
 /// The user can ask for it to quit instead, in which case it does.
+///
+/// Only macOS has a Command-Q.
+#[cfg(target_os = "macos")]
 fn command_q(app: &AppHandle) {
     if quits_with_command_q(app) {
         app.exit(0);
@@ -374,6 +373,7 @@ fn command_q(app: &AppHandle) {
 }
 
 /// Whether the user has asked for Command-Q to quit the app.
+#[cfg(target_os = "macos")]
 fn quits_with_command_q(app: &AppHandle) -> bool {
     app.try_state::<Shared>()
         .map(|shared| {
@@ -389,7 +389,10 @@ fn quits_with_command_q(app: &AppHandle) -> bool {
 
 /// Keeps the Command-Q menu item in step with the setting, so it says what
 /// it is going to do.
-fn update_command_q_item(app: &AppHandle, quits: bool) {
+///
+/// Only macOS has a menu bar, and so only macOS has a Command-Q.
+#[cfg(target_os = "macos")]
+fn update_command_q_item(app: &AppHandle) {
     let Some(menu) = app.menu() else {
         return;
     };
@@ -400,7 +403,7 @@ fn update_command_q_item(app: &AppHandle, quits: bool) {
         return;
     };
 
-    let text = if quits {
+    let text = if quits_with_command_q(app) {
         "Quit Tanuki"
     } else {
         "Hide to the Menu Bar"

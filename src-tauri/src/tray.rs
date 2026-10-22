@@ -44,7 +44,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<MenuItem<Wry>> {
         ],
     )?;
 
-    let mut builder = TrayIconBuilder::with_id(TRAY_ID)
+    let builder = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .tooltip("Tanuki — no reviews waiting")
         .menu(&menu)
@@ -59,9 +59,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<MenuItem<Wry>> {
 
     // Only macOS understands template images.
     #[cfg(target_os = "macos")]
-    {
-        builder = builder.icon_as_template(true);
-    }
+    let builder = builder.icon_as_template(true);
 
     let tray = builder.build(app)?;
 
